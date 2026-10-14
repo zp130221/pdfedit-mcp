@@ -1,0 +1,4341 @@
+{
+  "components": {
+    "schemas": {
+      "AtModel": {
+        "additionalProperties": false,
+        "description": "Where an `insert` writes: a point, or a piece of text to hang off.\n\nThe point is the BASELINE ORIGIN of the first line written -- where the bottom left\nof the first glyph sits, not the top left of a text box. That is how every\ncoordinate in this engine is expressed (a span's `origin`, `/v1/text`'s span\ngeometry), so the x/y of a span read out of a document can be used here unchanged;\nand it is the one of the two that does not move when `fit` shrinks the size.",
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Anchor text to insert after; the first occurrence on the page wins, and the style is inherited from it.",
+            "title": "After"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "placement": {
+            "default": "inline",
+            "description": "With `after`: 'inline' writes one space past the anchor's right edge on its own baseline; 'below' writes at the anchor line's left edge, one leading down.",
+            "enum": [
+              "inline",
+              "below"
+            ],
+            "title": "Placement",
+            "type": "string"
+          },
+          "units": {
+            "default": "pt",
+            "enum": [
+              "pt",
+              "fraction"
+            ],
+            "title": "Units",
+            "type": "string"
+          },
+          "x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Baseline origin x. Points from the page's left edge, or a fraction of the page width when units='fraction'.",
+            "title": "X"
+          },
+          "y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Baseline origin y: where the first line sits, measured from the page's TOP edge (PDF viewer convention, as every bbox and span origin in this API). A fraction of the page height when units='fraction'.",
+            "title": "Y"
+          }
+        },
+        "required": [
+          "page"
+        ],
+        "title": "AtModel",
+        "type": "object"
+      },
+      "BatchOptions": {
+        "additionalProperties": false,
+        "description": "``/edit``'s options plus the three only a batch has (spec §6).\n\nLike the rest of ``GatewayOptions`` these never reach the engine, so\ntheir names are in ``runner.GATEWAY_ONLY_OPTIONS`` too.",
+        "properties": {
+          "async": {
+            "default": false,
+            "title": "Async",
+            "type": "boolean"
+          },
+          "atomic": {
+            "default": true,
+            "title": "Atomic",
+            "type": "boolean"
+          },
+          "break_signature": {
+            "default": false,
+            "title": "Break Signature",
+            "type": "boolean"
+          },
+          "collateral_threshold": {
+            "default": 8,
+            "minimum": 0.0,
+            "title": "Collateral Threshold",
+            "type": "integer"
+          },
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "fail_fast": {
+            "default": false,
+            "title": "Fail Fast",
+            "type": "boolean"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "font": {
+            "$ref": "#/components/schemas/FontOptions"
+          },
+          "ocr": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "on",
+              "off"
+            ],
+            "title": "Ocr",
+            "type": "string"
+          },
+          "ocr_lang": {
+            "items": {
+              "enum": [
+                "zh",
+                "en"
+              ],
+              "type": "string"
+            },
+            "title": "Ocr Lang",
+            "type": "array"
+          },
+          "output": {
+            "default": "files",
+            "enum": [
+              "zip",
+              "files"
+            ],
+            "title": "Output",
+            "type": "string"
+          },
+          "preview": {
+            "default": "changes",
+            "enum": [
+              "changes",
+              "pages",
+              "none"
+            ],
+            "title": "Preview",
+            "type": "string"
+          },
+          "redact_metadata": {
+            "default": false,
+            "title": "Redact Metadata",
+            "type": "boolean"
+          },
+          "redact_style": {
+            "default": "box",
+            "enum": [
+              "box",
+              "text"
+            ],
+            "title": "Redact Style",
+            "type": "string"
+          },
+          "redact_verify_ocr": {
+            "default": true,
+            "title": "Redact Verify Ocr",
+            "type": "boolean"
+          },
+          "retain": {
+            "default": true,
+            "title": "Retain",
+            "type": "boolean"
+          },
+          "strict": {
+            "default": false,
+            "title": "Strict",
+            "type": "boolean"
+          },
+          "tidy": {
+            "default": true,
+            "title": "Tidy",
+            "type": "boolean"
+          },
+          "watermark": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "on",
+              "off"
+            ],
+            "title": "Watermark",
+            "type": "string"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "title": "BatchOptions",
+        "type": "object"
+      },
+      "BatchRequest": {
+        "additionalProperties": false,
+        "description": "``POST /v1/batch``'s JSON body (spec §6).\n\n``records`` inline xor ``records_url`` (a CSV or JSONL file fetched with\nthe same SSRF rules as ``source.url``). The per-record count limit is\n``limits.batch_max_records``, which the route applies -- it depends on\nthe caller's plan, so it cannot be a model constraint.",
+        "properties": {
+          "edits": {
+            "items": {
+              "$ref": "#/components/schemas/EditModel"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Edits",
+            "type": "array"
+          },
+          "options": {
+            "$ref": "#/components/schemas/BatchOptions"
+          },
+          "records": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Records"
+          },
+          "records_url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Records Url"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceModel"
+          }
+        },
+        "required": [
+          "source",
+          "edits"
+        ],
+        "title": "BatchRequest",
+        "type": "object"
+      },
+      "ChangeOut": {
+        "additionalProperties": true,
+        "description": "One verified change: ``Change.to_dict()`` plus ``preview_url``.\n\n``preview_url`` is null when the change has no preview -- ``preview:\n\"none\"``, or the per-response cap (``settings.preview_cap``) was reached,\nin which case ``warnings`` carries ``preview_capped``.",
+        "properties": {
+          "after": {
+            "default": "",
+            "title": "After",
+            "type": "string"
+          },
+          "bbox": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Bbox",
+            "type": "array"
+          },
+          "before": {
+            "default": "",
+            "title": "Before",
+            "type": "string"
+          },
+          "collateral_pixels": {
+            "default": 0,
+            "title": "Collateral Pixels",
+            "type": "integer"
+          },
+          "context": {
+            "default": "",
+            "title": "Context",
+            "type": "string"
+          },
+          "edit": {
+            "title": "Edit",
+            "type": "integer"
+          },
+          "fit": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fit"
+          },
+          "font_source": {
+            "default": "",
+            "title": "Font Source",
+            "type": "string"
+          },
+          "font_used": {
+            "default": "",
+            "title": "Font Used",
+            "type": "string"
+          },
+          "is_ocr": {
+            "default": false,
+            "title": "Is Ocr",
+            "type": "boolean"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "ocr_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Confidence"
+          },
+          "op": {
+            "title": "Op",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Label"
+          },
+          "preview_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preview Url"
+          },
+          "span_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Span Ids",
+            "type": "array"
+          },
+          "verified": {
+            "default": true,
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "edit",
+          "op",
+          "page"
+        ],
+        "title": "ChangeOut",
+        "type": "object"
+      },
+      "EditModel": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AtModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fields"
+          },
+          "find": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Find"
+          },
+          "fit": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "reflow",
+              "strict"
+            ],
+            "title": "Fit",
+            "type": "string"
+          },
+          "flatten": {
+            "default": false,
+            "title": "Flatten",
+            "type": "boolean"
+          },
+          "match": {
+            "$ref": "#/components/schemas/MatchModel"
+          },
+          "op": {
+            "default": "replace",
+            "enum": [
+              "replace",
+              "delete",
+              "redact",
+              "insert",
+              "form"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "replace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replace"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ScopeModel"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StyleModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "title": "EditModel",
+        "type": "object"
+      },
+      "EditRequest": {
+        "additionalProperties": false,
+        "description": "``POST /v1/edit``'s JSON body (spec §5.1).",
+        "properties": {
+          "edits": {
+            "items": {
+              "$ref": "#/components/schemas/EditModel"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Edits",
+            "type": "array"
+          },
+          "options": {
+            "$ref": "#/components/schemas/GatewayOptions"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceModel"
+          }
+        },
+        "required": [
+          "source",
+          "edits"
+        ],
+        "title": "EditRequest",
+        "type": "object"
+      },
+      "EditResponse": {
+        "additionalProperties": true,
+        "description": "A sync edit's body: 200 for done/partial, 422 for failed.\n\nA failed edit keeps all three lists (the spec requires them for\ndebugging) and additionally carries the ``error`` envelope.",
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeOut"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "failed": {
+            "items": {
+              "$ref": "#/components/schemas/FailedOut"
+            },
+            "title": "Failed",
+            "type": "array"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutputOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "unmatched": {
+            "items": {
+              "$ref": "#/components/schemas/UnmatchedOut"
+            },
+            "title": "Unmatched",
+            "type": "array"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/UsageOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "job_id"
+        ],
+        "title": "EditResponse",
+        "type": "object"
+      },
+      "ErrorOut": {
+        "additionalProperties": false,
+        "description": "The error envelope (``errors.envelope``), for the OpenAPI schema.",
+        "properties": {
+          "error": {
+            "additionalProperties": true,
+            "title": "Error",
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorOut",
+        "type": "object"
+      },
+      "FailedOut": {
+        "additionalProperties": true,
+        "description": "An edit the engine applied and then rolled back (``Failed.to_dict()``).\n\nCarries the reason's own structured detail flattened in alongside these\nfields -- hence ``extra=\"allow\"``.",
+        "properties": {
+          "collateral_pixels": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collateral Pixels"
+          },
+          "edit": {
+            "title": "Edit",
+            "type": "integer"
+          },
+          "hint": {
+            "default": "",
+            "title": "Hint",
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "edit",
+          "reason"
+        ],
+        "title": "FailedOut",
+        "type": "object"
+      },
+      "FieldOut": {
+        "additionalProperties": true,
+        "description": "One form widget, as ``/v1/text`` lists them with ``layers: [\"forms\"]``.",
+        "properties": {
+          "bbox": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Bbox",
+            "type": "array"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "page": {
+            "default": 1,
+            "title": "Page",
+            "type": "integer"
+          },
+          "readonly": {
+            "default": false,
+            "title": "Readonly",
+            "type": "boolean"
+          },
+          "type": {
+            "default": "",
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "xref": {
+            "default": 0,
+            "title": "Xref",
+            "type": "integer"
+          }
+        },
+        "title": "FieldOut",
+        "type": "object"
+      },
+      "FontOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "policy": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "metric_only",
+              "exact_only"
+            ],
+            "title": "Policy",
+            "type": "string"
+          }
+        },
+        "title": "FontOptions",
+        "type": "object"
+      },
+      "FontOut": {
+        "additionalProperties": true,
+        "description": "One font family ``style.font`` can name (``fonts.list_fonts``).",
+        "properties": {
+          "family": {
+            "default": "",
+            "title": "Family",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "scripts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scripts",
+            "type": "array"
+          },
+          "source": {
+            "default": "",
+            "title": "Source",
+            "type": "string"
+          },
+          "styles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Styles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "FontOut",
+        "type": "object"
+      },
+      "FontsResponse": {
+        "additionalProperties": true,
+        "description": "``GET /v1/fonts``: the families ``style.font`` can name here.",
+        "properties": {
+          "fonts": {
+            "items": {
+              "$ref": "#/components/schemas/FontOut"
+            },
+            "title": "Fonts",
+            "type": "array"
+          }
+        },
+        "title": "FontsResponse",
+        "type": "object"
+      },
+      "GatewayOptions": {
+        "additionalProperties": false,
+        "description": "The engine's options plus the ones the gateway itself implements.\n\n``async`` is a Python keyword, so the field is ``async_`` with ``async``\nas its alias; ``populate_by_name`` keeps internal construction\n(``GatewayOptions(async_=True)``) working alongside the wire name.",
+        "properties": {
+          "async": {
+            "default": false,
+            "title": "Async",
+            "type": "boolean"
+          },
+          "atomic": {
+            "default": true,
+            "title": "Atomic",
+            "type": "boolean"
+          },
+          "break_signature": {
+            "default": false,
+            "title": "Break Signature",
+            "type": "boolean"
+          },
+          "collateral_threshold": {
+            "default": 8,
+            "minimum": 0,
+            "title": "Collateral Threshold",
+            "type": "integer"
+          },
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "font": {
+            "$ref": "#/components/schemas/FontOptions"
+          },
+          "ocr": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "on",
+              "off"
+            ],
+            "title": "Ocr",
+            "type": "string"
+          },
+          "ocr_lang": {
+            "items": {
+              "enum": [
+                "zh",
+                "en"
+              ],
+              "type": "string"
+            },
+            "title": "Ocr Lang",
+            "type": "array"
+          },
+          "preview": {
+            "default": "changes",
+            "enum": [
+              "changes",
+              "pages",
+              "none"
+            ],
+            "title": "Preview",
+            "type": "string"
+          },
+          "redact_metadata": {
+            "default": false,
+            "title": "Redact Metadata",
+            "type": "boolean"
+          },
+          "redact_style": {
+            "default": "box",
+            "enum": [
+              "box",
+              "text"
+            ],
+            "title": "Redact Style",
+            "type": "string"
+          },
+          "redact_verify_ocr": {
+            "default": true,
+            "title": "Redact Verify Ocr",
+            "type": "boolean"
+          },
+          "retain": {
+            "default": true,
+            "title": "Retain",
+            "type": "boolean"
+          },
+          "strict": {
+            "default": false,
+            "title": "Strict",
+            "type": "boolean"
+          },
+          "tidy": {
+            "default": true,
+            "title": "Tidy",
+            "type": "boolean"
+          },
+          "watermark": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "on",
+              "off"
+            ],
+            "title": "Watermark",
+            "type": "string"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "title": "GatewayOptions",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "MatchModel": {
+        "additionalProperties": false,
+        "properties": {
+          "across_lines": {
+            "default": false,
+            "title": "Across Lines",
+            "type": "boolean"
+          },
+          "mode": {
+            "default": "exact",
+            "enum": [
+              "exact",
+              "icase",
+              "word",
+              "regex"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "normalize": {
+            "default": true,
+            "title": "Normalize",
+            "type": "boolean"
+          }
+        },
+        "title": "MatchModel",
+        "type": "object"
+      },
+      "OutputOut": {
+        "additionalProperties": true,
+        "description": "The edited document (absent on ``dry_run`` and on a failed edit).",
+        "properties": {
+          "bytes": {
+            "default": 0,
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "file_id": {
+            "title": "File Id",
+            "type": "string"
+          },
+          "pages": {
+            "default": 0,
+            "title": "Pages",
+            "type": "integer"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "file_id"
+        ],
+        "title": "OutputOut",
+        "type": "object"
+      },
+      "PreviewRequest": {
+        "additionalProperties": false,
+        "description": "``POST /v1/preview``'s body (spec §2.2).",
+        "properties": {
+          "highlight": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "maxItems": 200,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlight"
+          },
+          "page": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 4,
+                "minItems": 4,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "scale": {
+            "default": 2,
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "title": "Scale",
+            "type": "integer"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceModel"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "PreviewRequest",
+        "type": "object"
+      },
+      "QueuedResponse": {
+        "additionalProperties": true,
+        "description": "The 202 body of an async edit or a batch: the worker has the job.",
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "queued",
+            "default": "queued",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "QueuedResponse",
+        "type": "object"
+      },
+      "RegionModel": {
+        "additionalProperties": false,
+        "properties": {
+          "units": {
+            "default": "fraction",
+            "enum": [
+              "fraction",
+              "pt"
+            ],
+            "title": "Units",
+            "type": "string"
+          },
+          "x0": {
+            "title": "X0",
+            "type": "number"
+          },
+          "x1": {
+            "title": "X1",
+            "type": "number"
+          },
+          "y0": {
+            "title": "Y0",
+            "type": "number"
+          },
+          "y1": {
+            "title": "Y1",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x0",
+          "y0",
+          "x1",
+          "y1"
+        ],
+        "title": "RegionModel",
+        "type": "object"
+      },
+      "ScopeModel": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "layers": {
+            "description": "Page layers to match in. All three are implemented; a match on the 'forms' layer is applied to the field's value, not to the page.",
+            "items": {
+              "enum": [
+                "content",
+                "forms",
+                "annotations"
+              ],
+              "type": "string"
+            },
+            "title": "Layers",
+            "type": "array"
+          },
+          "occurrence": {
+            "anyOf": [
+              {
+                "enum": [
+                  "all",
+                  "first",
+                  "last"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "default": "all",
+            "title": "Occurrence"
+          },
+          "page_labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Labels"
+          },
+          "pages": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              }
+            ],
+            "default": "all",
+            "title": "Pages"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegionModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "span_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span Ids"
+          }
+        },
+        "title": "ScopeModel",
+        "type": "object"
+      },
+      "SourceModel": {
+        "additionalProperties": false,
+        "properties": {
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "SourceModel",
+        "type": "object"
+      },
+      "StyleModel": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "anyOf": [
+              {
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "font": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Font"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "maximum": 200.0,
+                "minimum": 1.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          }
+        },
+        "title": "StyleModel",
+        "type": "object"
+      },
+      "TextRequest": {
+        "additionalProperties": false,
+        "description": "``POST /v1/text``'s body (spec §2.1).\n\n``match`` is the engine's own ``MatchModel``, so ``query`` accepts\nexactly the four modes an edit's ``find`` does -- a caller searches with\na string and then edits with the same string and the same ``match``.",
+        "properties": {
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursor"
+          },
+          "layers": {
+            "items": {
+              "enum": [
+                "content",
+                "forms",
+                "annotations"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Layers",
+            "type": "array"
+          },
+          "limit": {
+            "default": 200,
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "match": {
+            "$ref": "#/components/schemas/MatchModel"
+          },
+          "pages": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pages"
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceModel"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "TextRequest",
+        "type": "object"
+      },
+      "TextResponse": {
+        "additionalProperties": true,
+        "description": "``POST /v1/text``'s body.\n\n``next_cursor`` is present only when there is another page of results --\na cursor on the last page is an invitation to make one more empty\nrequest. ``fields`` only when ``layers`` included ``forms``.",
+        "properties": {
+          "fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FieldOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fields"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "page_count": {
+            "default": 0,
+            "title": "Page Count",
+            "type": "integer"
+          },
+          "spans": {
+            "items": {
+              "$ref": "#/components/schemas/TextSpanOut"
+            },
+            "title": "Spans",
+            "type": "array"
+          }
+        },
+        "title": "TextResponse",
+        "type": "object"
+      },
+      "TextSpanOut": {
+        "additionalProperties": true,
+        "description": "One span of the document, as ``/v1/text`` reports it (spec §2.1).",
+        "properties": {
+          "bbox": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Bbox",
+            "type": "array"
+          },
+          "block_id": {
+            "title": "Block Id",
+            "type": "string"
+          },
+          "color": {
+            "default": "#000000",
+            "title": "Color",
+            "type": "string"
+          },
+          "dir": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Dir",
+            "type": "array"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "font": {
+            "default": "",
+            "title": "Font",
+            "type": "string"
+          },
+          "in_shared_xobject": {
+            "default": false,
+            "title": "In Shared Xobject",
+            "type": "boolean"
+          },
+          "is_ocr": {
+            "default": false,
+            "title": "Is Ocr",
+            "type": "boolean"
+          },
+          "layer": {
+            "default": "content",
+            "title": "Layer",
+            "type": "string"
+          },
+          "line_id": {
+            "title": "Line Id",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Label"
+          },
+          "size": {
+            "default": 0,
+            "title": "Size",
+            "type": "number"
+          },
+          "span_id": {
+            "title": "Span Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "span_id",
+          "page",
+          "block_id",
+          "line_id",
+          "text"
+        ],
+        "title": "TextSpanOut",
+        "type": "object"
+      },
+      "UnmatchedOut": {
+        "additionalProperties": true,
+        "description": "An edit that found nothing (``Unmatched.to_dict()``).",
+        "properties": {
+          "edit": {
+            "title": "Edit",
+            "type": "integer"
+          },
+          "hint": {
+            "default": "",
+            "title": "Hint",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "suggestions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "edit",
+          "reason"
+        ],
+        "title": "UnmatchedOut",
+        "type": "object"
+      },
+      "UsageOut": {
+        "additionalProperties": true,
+        "description": "What the request cost (spec §5.2's ``usage``).",
+        "properties": {
+          "pages_billed": {
+            "default": 0,
+            "title": "Pages Billed",
+            "type": "integer"
+          },
+          "remaining": {
+            "default": 0,
+            "title": "Remaining",
+            "type": "integer"
+          },
+          "weights": {
+            "additionalProperties": true,
+            "title": "Weights",
+            "type": "object"
+          }
+        },
+        "title": "UsageOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Edit text inside existing PDFs: replace, delete, redact, insert and fill forms, keeping the original fonts and layout, with every change verified before it is returned.\n\n**Source.** The editing engine is free software under the AGPL-3.0; its complete source is served to API users at `GET /source` (a tar.gz of the engine package, its Dockerfile and the licence).",
+    "title": "PDF Edit API Gateway",
+    "version": "2026-10-12"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Healthz"
+      }
+    },
+    "/source": {
+      "get": {
+        "description": "The complete source of the editing engine this API runs, as a tar.gz, offered under the GNU AGPL-3.0 to the API's users: send your API key (a free `sk_test_` key is enough; the hosted MCP endpoint relays this for its keyless tier). This is the licence's network-use source offer; the gateway (keys, billing, storage) is a separate program and is not included.",
+        "operationId": "get_source_source_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/gzip": {}
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Engine source (AGPL-3.0)",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/v1/batch": {
+      "post": {
+        "description": "Queue a batch job. Plain ``def``: resolving the template blocks.",
+        "operationId": "post_batch_v1_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Post Batch",
+        "tags": [
+          "batch"
+        ]
+      }
+    },
+    "/v1/billing/checkout": {
+      "get": {
+        "description": "A hosted checkout link for a plan upgrade or a credit pack.\n\n``free`` is refused: there is nothing to buy, and a link that charges\nnothing is a support ticket waiting to happen. Downgrades are not\ncheckouts either -- they happen in the provider's portal, and arrive\nhere as ``subscription.canceled``.",
+        "operationId": "checkout_v1_billing_checkout_get",
+        "parameters": [
+          {
+            "description": "starter | growth | scale",
+            "in": "query",
+            "name": "plan",
+            "required": false,
+            "schema": {
+              "description": "starter | growth | scale",
+              "title": "Plan",
+              "type": "string"
+            }
+          },
+          {
+            "description": "a credit pack name, e.g. pack_5k",
+            "in": "query",
+            "name": "pack",
+            "required": false,
+            "schema": {
+              "description": "a credit pack name, e.g. pack_5k",
+              "title": "Pack",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Checkout V1 Billing Checkout Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Checkout",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/v1/billing/webhook/creem": {
+      "post": {
+        "description": "Apply one Creem event to the account it names.\n\n``async def`` for one reason: the raw body. The signature covers the\nbytes as sent, so they have to be read before any parsing, and reading\na request body is the one thing a sync route cannot do.",
+        "operationId": "creem_webhook_v1_billing_webhook_creem_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Creem Webhook V1 Billing Webhook Creem Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Creem Webhook",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/v1/edit": {
+      "post": {
+        "description": "Plain ``def``: the engine run belongs on a threadpool worker.",
+        "operationId": "post_edit_v1_edit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "edits": {
+                    "description": "A JSON array of EditModel objects, as `EditRequest.edits` takes them.",
+                    "title": "Edits",
+                    "type": "string"
+                  },
+                  "file": {
+                    "description": "The PDF to edit. The bytes are the source, so `source` is not sent.",
+                    "format": "binary",
+                    "title": "File",
+                    "type": "string"
+                  },
+                  "options": {
+                    "description": "A JSON object of GatewayOptions, as `EditRequest.options` takes it.",
+                    "title": "Options",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "The document open password, when it has one.",
+                    "title": "Password",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "title": "EditForm",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditResponse"
+                }
+              }
+            },
+            "description": "The edit ran"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueuedResponse"
+                }
+              }
+            },
+            "description": "Accepted as a job"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Post Edit",
+        "tags": [
+          "edit"
+        ]
+      }
+    },
+    "/v1/files": {
+      "post": {
+        "description": "Reserve a file id and return a presigned upload URL.",
+        "operationId": "create_file_v1_files_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create File V1 Files Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Create File",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/v1/files/{file_id}": {
+      "delete": {
+        "description": "Delete a file (owner only), cascading to its derived children.",
+        "operationId": "delete_file_v1_files__file_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "title": "File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Delete File",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/v1/files/{file_id}/content": {
+      "get": {
+        "operationId": "get_file_content_v1_files__file_id__content_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "title": "File Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Get File Content",
+        "tags": [
+          "files"
+        ]
+      },
+      "put": {
+        "description": "Stays ``async`` -- it consumes the request body, which only the event\nloop can iterate -- and hands the one blocking step (writing the file and\nupdating the row) to a threadpool worker.",
+        "operationId": "put_file_content_v1_files__file_id__content_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "title": "File Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Put File Content",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/v1/fonts": {
+      "get": {
+        "description": "``{\"fonts\": [{name, family, styles, scripts, source}, ...]}``.",
+        "operationId": "get_fonts_v1_fonts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FontsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Get Fonts",
+        "tags": [
+          "fonts"
+        ]
+      }
+    },
+    "/v1/jobs": {
+      "get": {
+        "description": "Audit metadata for the account's jobs, newest first, no file contents.\n\nPaged by ``cursor``: the ``job_id`` of the last row returned. Job ids are\nULIDs, so ``id < cursor`` is both the pagination predicate and a\nchronological one -- no offset, and a page is stable while new jobs\narrive.\n\n``since`` is applied in Python rather than in SQL on purpose: SQLite\nstores ``DateTime(timezone=True)`` naive (see ``db.as_utc``), so an\noffset-aware bound in a WHERE clause compares wrongly. Because the rows\ncome back newest-first, the first row older than ``since`` ends the page\nand nothing qualifying can be below it.",
+        "operationId": "list_jobs_v1_jobs_get",
+        "parameters": [
+          {
+            "description": "ISO 8601 lower bound on created_at",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 8601 lower bound on created_at",
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "description": "the job_id of the last row of the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "the job_id of the last row of the previous page",
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "List Jobs",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}": {
+      "get": {
+        "description": "One job: its status, its progress, and the sync body once it is done.",
+        "operationId": "get_job_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Get Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/limits": {
+      "get": {
+        "operationId": "get_limits_v1_limits_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Limits V1 Limits Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Get Limits",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/v1/preview": {
+      "post": {
+        "description": "Render one page. Plain ``def``: the source read and the pool both block.",
+        "operationId": "post_preview_v1_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The rendered page, at most 200 KB."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Post Preview",
+        "tags": [
+          "preview"
+        ]
+      }
+    },
+    "/v1/text": {
+      "post": {
+        "description": "Spans of the document, filtered and paginated. Plain ``def``:\nresolving the source and waiting on the pool both block.",
+        "operationId": "post_text_v1_text_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Post Text",
+        "tags": [
+          "text"
+        ]
+      }
+    },
+    "/v1/usage": {
+      "get": {
+        "operationId": "get_usage_v1_usage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Usage V1 Usage Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Get Usage",
+        "tags": [
+          "meta"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Read a document: spans, ids, form fields (spec 2.1).",
+      "name": "text"
+    },
+    {
+      "description": "Render one page as a PNG, optionally highlighted (spec 2.2).",
+      "name": "preview"
+    },
+    {
+      "description": "Apply edits to a document, synchronously or as a job (spec 5).",
+      "name": "edit"
+    },
+    {
+      "description": "One template, many records (spec 6).",
+      "name": "batch"
+    },
+    {
+      "description": "Poll a job and read the 30-day audit log (spec 7).",
+      "name": "jobs"
+    },
+    {
+      "description": "Upload, download and delete documents (spec 3).",
+      "name": "files"
+    },
+    {
+      "description": "Fonts this deployment can resolve by name.",
+      "name": "fonts"
+    },
+    {
+      "description": "Plan limits and usage for the calling key (spec 8).",
+      "name": "meta"
+    },
+    {
+      "description": "Checkout links, and the merchant of record's webhook (spec 5).",
+      "name": "billing"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "//": "rootDir is the repository root because the tests import the MCP package's fake gateway, which sits above this package.",
+  "//purpose": "`npm run typecheck`: the build config widened to the tests and the generator, which are not emitted.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../..",
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "fake-gateway": ["../../mcp/pdfedit-mcp/test/fake-gateway.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"]
+}

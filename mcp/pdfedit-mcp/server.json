@@ -1,0 +1,46 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.zp130221/pdfedit-mcp",
+  "description": "Edit the text of existing PDFs: replace, delete, redact, insert and fill form fields in place, keeping the original fonts and layout, with a verified before/after of every change.",
+  "status": "active",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/zp130221/pdfedit-mcp",
+    "source": "github",
+    "subfolder": "mcp/pdfedit-mcp"
+  },
+  "websiteUrl": "https://api.niubai.vip",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@niubai/pdfedit-mcp",
+      "version": "0.1.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "PDFEDIT_API_KEY",
+          "description": "API key for the PDF Edit API. Without one the server can still reach a gateway you run yourself; the hosted endpoint has a keyless free tier.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "PDFEDIT_BASE_URL",
+          "description": "Gateway base URL. Defaults to http://localhost:8000; set it to the hosted API or to your own deployment.",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "http://localhost:8000"
+        }
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.niubai.vip/mcp"
+    }
+  ]
+}
