@@ -189,6 +189,11 @@ class GatewayOptions:
     webhook_url: str | None = None
 
 
+@dataclass
+class LoginStart:
+    email: str
+
+
 class Mode(Enum):
     exact = 'exact'
     icase = 'icase'
