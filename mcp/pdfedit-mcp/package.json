@@ -5,6 +5,12 @@
   "mcpName": "io.github.zp130221/pdfedit-mcp",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zp130221/pdfedit-mcp.git",
+    "directory": "mcp/pdfedit-mcp"
+  },
+  "homepage": "https://github.com/zp130221/pdfedit-mcp/tree/main/mcp/pdfedit-mcp#readme",
   "bin": {
     "pdfedit-mcp": "dist/index.js"
   },

@@ -4,6 +4,12 @@
   "description": "TypeScript client for the PDF Edit API: replace, redact, insert and read text in existing PDFs.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zp130221/pdfedit-mcp.git",
+    "directory": "sdk/typescript"
+  },
+  "homepage": "https://github.com/zp130221/pdfedit-mcp/tree/main/sdk/typescript#readme",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
