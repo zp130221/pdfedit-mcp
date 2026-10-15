@@ -1,16 +1,34 @@
 {
   "name": "@niubai/pdfedit-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server for the PDF Edit API: replace, redact, insert and read text in existing PDFs.",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "pdf",
+    "pdf-edit",
+    "pdf-editor",
+    "redact",
+    "redaction",
+    "pdf-form",
+    "claude",
+    "cursor",
+    "ai-agent",
+    "document-automation"
+  ],
   "mcpName": "io.github.zp130221/pdfedit-mcp",
-  "type": "module",
-  "license": "MIT",
+  "homepage": "https://api.niubai.vip",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zp130221/pdfedit-mcp.git",
     "directory": "mcp/pdfedit-mcp"
   },
-  "homepage": "https://github.com/zp130221/pdfedit-mcp/tree/main/mcp/pdfedit-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/zp130221/pdfedit-mcp/issues"
+  },
+  "license": "MIT",
+  "type": "module",
   "bin": {
     "pdfedit-mcp": "dist/index.js"
   },

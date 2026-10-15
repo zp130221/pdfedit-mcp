@@ -410,6 +410,26 @@
         "title": "ChangeOut",
         "type": "object"
       },
+      "CheckoutStart": {
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "title": "Email",
+            "type": "string"
+          },
+          "item": {
+            "description": "starter | growth | scale | pack_500 | pack_5k",
+            "title": "Item",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "item"
+        ],
+        "title": "CheckoutStart",
+        "type": "object"
+      },
       "EditModel": {
         "additionalProperties": false,
         "properties": {
@@ -957,6 +977,21 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "LoginStart": {
+        "properties": {
+          "email": {
+            "description": "Where the sign-in link is sent.",
+            "maxLength": 254,
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "LoginStart",
+        "type": "object"
+      },
       "MatchModel": {
         "additionalProperties": false,
         "properties": {
@@ -1267,6 +1302,21 @@
           }
         },
         "title": "ScopeModel",
+        "type": "object"
+      },
+      "SignupRequest": {
+        "properties": {
+          "email": {
+            "description": "Where the account is registered; the key is returned once in the response.",
+            "maxLength": 254,
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "SignupRequest",
         "type": "object"
       },
       "SourceModel": {
@@ -2408,6 +2458,160 @@
         "summary": "Creem Webhook",
         "tags": [
           "billing"
+        ]
+      }
+    },
+    "/v1/checkout/start": {
+      "post": {
+        "description": "For the pricing page. Creates the account for the email if it does not exist (and its first key, returned once), then returns the merchant checkout URL for the plan or pack. Payment upgrades the account automatically through the merchant webhook. An existing account gets the checkout URL only -- its key is never re-issued here.",
+        "operationId": "checkout_start_v1_checkout_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Checkout Start V1 Checkout Start Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Start a purchase from the website: account, key and checkout link in one step",
+        "tags": [
+          "account"
         ]
       }
     },
@@ -3851,6 +4055,160 @@
         ]
       }
     },
+    "/v1/login/start": {
+      "post": {
+        "description": "Sends a single-use link (valid 15 minutes) to the address; the account is created on the free plan if it does not exist. Keys are then made and revoked on the account page. 10 links per IP per day. `400 invalid_request` when this deployment has no outbound mail.",
+        "operationId": "login_start_v1_login_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Login Start V1 Login Start Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Email a sign-in link for the account page",
+        "tags": [
+          "account"
+        ]
+      }
+    },
     "/v1/preview": {
       "post": {
         "description": "Render one page. Plain ``def``: the source read and the pool both block.",
@@ -4001,6 +4359,160 @@
         "summary": "Post Preview",
         "tags": [
           "preview"
+        ]
+      }
+    },
+    "/v1/signup": {
+      "post": {
+        "description": "Creates a free account (200 pages a month) for an email address and returns its `sk_live_` key **once**. One address, one account: an address that already has one is refused with `409 conflict` (lost keys go through support, zp130221@163.com). 3 sign-ups per IP per day.",
+        "operationId": "signup_v1_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Signup V1 Signup Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: quota_exceeded"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: forbidden_watermark_off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout"
+          }
+        },
+        "summary": "Create a free account and get its API key",
+        "tags": [
+          "account"
         ]
       }
     },
@@ -4332,6 +4844,10 @@
     {
       "description": "Plan limits and usage for the calling key (spec 8).",
       "name": "meta"
+    },
+    {
+      "description": "Self-serve sign-up: a free account and its key.",
+      "name": "account"
     },
     {
       "description": "Checkout links, and the merchant of record's webhook (spec 5).",

@@ -97,6 +97,12 @@ class ChangeOut:
     verified: bool | None = True
 
 
+@dataclass
+class CheckoutStart:
+    email: str
+    item: str
+
+
 class Fit(Enum):
     auto = 'auto'
     reflow = 'reflow'
@@ -254,6 +260,11 @@ class ScopeModel:
     pages: str | list[int] | None = 'all'
     region: RegionModel | None = None
     span_ids: list[str] | None = None
+
+
+@dataclass
+class SignupRequest:
+    email: str
 
 
 @dataclass

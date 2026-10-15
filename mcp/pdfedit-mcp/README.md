@@ -5,8 +5,33 @@ text inside a PDF that already exists**, keeping the original font, the original
 and everything you did not point at. Not "generate a new PDF that looks similar" — the
 same file, with the words you named changed, and a before/after picture of every change.
 
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=pdfedit&config=eyJ1cmwiOiJodHRwczovL3BkZmVkaXQtbWNwLXJlbW90ZS5uaXViYWktcGRmZWRpdC1yZW1vdGUtd29ya2VyLndvcmtlcnMuZGV2L21jcCJ9) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_MCP_server-0098FF?logo=visualstudiocode&logoColor=white)](vscode:mcp/install?%7B%22name%22%3A%22pdfedit%22%2C%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A//pdfedit-mcp-remote.niubai-pdfedit-remote-worker.workers.dev/mcp%22%7D) [![npm](https://img.shields.io/npm/v/@niubai/pdfedit-mcp?label=npm)](https://www.npmjs.com/package/@niubai/pdfedit-mcp) [![MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 > With `PDFEDIT_BASE_URL` unset the server talks to the hosted API at
 > `https://api.niubai.vip`; set it to point at another deployment.
+
+## Try it in 30 seconds, no key
+
+The hosted endpoint answers anonymous callers on a free tier (20 pages a day per IP,
+outputs watermarked `TEST`). Nothing to install:
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http pdfedit https://pdfedit-mcp-remote.niubai-pdfedit-remote-worker.workers.dev/mcp
+```
+
+**Cursor / VS Code / Claude Desktop (remote server)** — add this server, or use the
+buttons above:
+
+```json
+{ "pdfedit": { "url": "https://pdfedit-mcp-remote.niubai-pdfedit-remote-worker.workers.dev/mcp" } }
+```
+
+Then ask your agent: *"In https://example.com/contract.pdf replace 'Acme Ltd' with
+'Acme GmbH' and redact the IBAN."* It returns the edited PDF link and a before/after
+picture of every change. A free API key (200 pages a month, no watermark on ordinary
+documents) takes one email at <https://api.niubai.vip>.
 
 ## Install
 
@@ -38,7 +63,7 @@ cursor://anysphere.cursor-deeplink/mcp/install?name=pdfedit&config=eyJjb21tYW5kI
 }
 ```
 
-No key? The [hosted endpoint](../remote-worker/README.md) answers anonymous callers on a
+No key? The [hosted endpoint](https://github.com/zp130221/pdfedit-mcp/blob/main/mcp/remote-worker/README.md) answers anonymous callers on a
 keyless free tier — 20 pages/day per IP, outputs watermarked `TEST`.
 
 ### Local files versus URLs
@@ -156,7 +181,7 @@ What the API refuses before touching the document:
 - [Examples](../../docs/public/examples/README.md) — ten before/after pairs, each with
   the request that produced it.
 - [Landing page and pricing](../../docs/public/index.md).
-- [Hosted MCP endpoint](../remote-worker/README.md) — OAuth 2.1, bearer passthrough, the
+- [Hosted MCP endpoint](https://github.com/zp130221/pdfedit-mcp/blob/main/mcp/remote-worker/README.md) — OAuth 2.1, bearer passthrough, the
   keyless tier.
 - SDKs: [TypeScript](../../sdk/typescript/README.md), [Python](../../sdk/python/README.md).
 

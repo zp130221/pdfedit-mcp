@@ -53,12 +53,18 @@ across two fonts · a header shared by three pages · a regex over matplotlib ou
 
 | Plan | Price | Pages included | Notes |
 | --- | --- | --- | --- |
-| Free | $0 | 200 / month | Output carries an "Edited" watermark. |
-| Starter | $19 / month | 5,000 | Watermark off. |
-| Growth | $49 / month | 20,000 | |
-| Scale | $149 / month | 100,000 | |
+| Free | $0 | 200 / month | |
+| Try-it pack | $4.90 once | 500 pages, no expiry | No subscription. |
+| Starter | $19 / month | 5,000 | |
+| Growth | $49 / month | 20,000 | May turn the watermark off on flagged documents. |
+| Scale | $149 / month | 100,000 | Same. |
 | Overage | $0.005 / page | — | Charged on top of any paid plan. |
 | Credit pack | $19 once | 5,000 pages, no expiry | For bursty use; no subscription. |
+
+Watermarks: an ordinary document is never watermarked on any plan. A document that
+looks like an invoice, a contract, a sealed or official paper is marked "Edited" by
+default; only Growth and Scale accounts that have accepted the document-integrity terms
+may turn that off. A redaction is never watermarked.
 
 - **A page is the unit.** `pages_billed` counts the pages an edit actually changed, not
   the pages in the document.
