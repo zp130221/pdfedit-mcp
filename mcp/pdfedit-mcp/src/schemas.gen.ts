@@ -9,7 +9,7 @@ export const SourceModel = z.strictObject({
 });
 
 export const RegionModel = z.strictObject({
-  "units": z.enum(["fraction", "pt"]).default("fraction"),
+  "units": z.enum(["fraction", "pt"]).describe("(default: \"fraction\")").optional(),
   "x0": z.number(),
   "x1": z.number(),
   "y0": z.number(),
@@ -28,8 +28,8 @@ export const RegionModel = z.strictObject({
 export const AtModel = z.strictObject({
   "after": z.string().nullable().describe("Anchor text to insert after; the first occurrence on the page wins, and the style is inherited from it.").optional(),
   "page": z.int().min(1),
-  "placement": z.enum(["inline", "below"]).describe("With `after`: 'inline' writes one space past the anchor's right edge on its own baseline; 'below' writes at the anchor line's left edge, one leading down.").default("inline"),
-  "units": z.enum(["pt", "fraction"]).default("pt"),
+  "placement": z.enum(["inline", "below"]).describe("With `after`: 'inline' writes one space past the anchor's right edge on its own baseline; 'below' writes at the anchor line's left edge, one leading down. (default: \"inline\")").optional(),
+  "units": z.enum(["pt", "fraction"]).describe("(default: \"pt\")").optional(),
   "x": z.number().nullable().describe("Baseline origin x. Points from the page's left edge, or a fraction of the page width when units='fraction'.").optional(),
   "y": z.number().nullable().describe("Baseline origin y: where the first line sits, measured from the page's TOP edge (PDF viewer convention, as every bbox and span origin in this API). A fraction of the page height when units='fraction'.").optional(),
 });
@@ -41,13 +41,13 @@ export const StyleModel = z.strictObject({
 });
 
 export const MatchModel = z.strictObject({
-  "across_lines": z.boolean().default(false),
-  "mode": z.enum(["exact", "icase", "word", "regex"]).default("exact"),
-  "normalize": z.boolean().default(true),
+  "across_lines": z.boolean().describe("(default: false)").optional(),
+  "mode": z.enum(["exact", "icase", "word", "regex"]).describe("(default: \"exact\")").optional(),
+  "normalize": z.boolean().describe("(default: true)").optional(),
 });
 
 export const FontOptions = z.strictObject({
-  "policy": z.enum(["auto", "metric_only", "exact_only"]).default("auto"),
+  "policy": z.enum(["auto", "metric_only", "exact_only"]).describe("(default: \"auto\")").optional(),
 });
 
 /**
@@ -58,22 +58,22 @@ export const FontOptions = z.strictObject({
  * (``GatewayOptions(async_=True)``) working alongside the wire name.
  */
 export const GatewayOptions = z.strictObject({
-  "async": z.boolean().default(false),
-  "atomic": z.boolean().default(true),
-  "break_signature": z.boolean().default(false),
-  "collateral_threshold": z.int().min(0).default(8),
-  "dry_run": z.boolean().default(false),
+  "async": z.boolean().describe("(default: false)").optional(),
+  "atomic": z.boolean().describe("(default: true)").optional(),
+  "break_signature": z.boolean().describe("(default: false)").optional(),
+  "collateral_threshold": z.int().min(0).describe("(default: 8)").optional(),
+  "dry_run": z.boolean().describe("(default: false)").optional(),
   "font": FontOptions.optional(),
-  "ocr": z.enum(["auto", "on", "off"]).default("auto"),
+  "ocr": z.enum(["auto", "on", "off"]).describe("(default: \"auto\")").optional(),
   "ocr_lang": z.array(z.enum(["zh", "en"])).optional(),
-  "preview": z.enum(["changes", "pages", "none"]).default("changes"),
-  "redact_metadata": z.boolean().default(false),
-  "redact_style": z.enum(["box", "text"]).default("box"),
-  "redact_verify_ocr": z.boolean().default(true),
-  "retain": z.boolean().default(true),
-  "strict": z.boolean().default(false),
-  "tidy": z.boolean().default(true),
-  "watermark": z.enum(["auto", "on", "off"]).default("auto"),
+  "preview": z.enum(["changes", "pages", "none"]).describe("(default: \"changes\")").optional(),
+  "redact_metadata": z.boolean().describe("(default: false)").optional(),
+  "redact_style": z.enum(["box", "text"]).describe("(default: \"box\")").optional(),
+  "redact_verify_ocr": z.boolean().describe("(default: true)").optional(),
+  "retain": z.boolean().describe("(default: true)").optional(),
+  "strict": z.boolean().describe("(default: false)").optional(),
+  "tidy": z.boolean().describe("(default: true)").optional(),
+  "watermark": z.enum(["auto", "on", "off"]).describe("(default: \"auto\")").optional(),
   "webhook_url": z.url().min(1).max(2083).nullable().optional(),
 });
 
@@ -81,9 +81,9 @@ export const ScopeModel = z.strictObject({
   "after": z.string().min(1).nullable().optional(),
   "before": z.string().min(1).nullable().optional(),
   "layers": z.array(z.enum(["content", "forms", "annotations"])).describe("Page layers to match in. All three are implemented; a match on the 'forms' layer is applied to the field's value, not to the page.").optional(),
-  "occurrence": z.union([z.enum(["all", "first", "last"]), z.int()]).default("all"),
+  "occurrence": z.union([z.enum(["all", "first", "last"]), z.int()]).describe("(default: \"all\")").optional(),
   "page_labels": z.array(z.string()).nullable().optional(),
-  "pages": z.union([z.string(), z.array(z.int())]).default("all"),
+  "pages": z.union([z.string(), z.array(z.int())]).describe("(default: \"all\")").optional(),
   "region": RegionModel.nullable().optional(),
   "span_ids": z.array(z.string()).nullable().optional(),
 });
@@ -92,10 +92,10 @@ export const EditModel = z.strictObject({
   "at": AtModel.nullable().optional(),
   "fields": z.record(z.string(), z.unknown()).nullable().optional(),
   "find": z.string().nullable().optional(),
-  "fit": z.enum(["auto", "reflow", "strict"]).default("auto"),
-  "flatten": z.boolean().default(false),
+  "fit": z.enum(["auto", "reflow", "strict"]).describe("(default: \"auto\")").optional(),
+  "flatten": z.boolean().describe("(default: false)").optional(),
   "match": MatchModel.optional(),
-  "op": z.enum(["replace", "delete", "redact", "insert", "form"]).default("replace"),
+  "op": z.enum(["replace", "delete", "redact", "insert", "form"]).describe("(default: \"replace\")").optional(),
   "replace": z.string().nullable().optional(),
   "scope": ScopeModel.optional(),
   "style": StyleModel.nullable().optional(),
@@ -109,25 +109,25 @@ export const EditModel = z.strictObject({
  * their names are in ``runner.GATEWAY_ONLY_OPTIONS`` too.
  */
 export const BatchOptions = z.strictObject({
-  "async": z.boolean().default(false),
-  "atomic": z.boolean().default(true),
-  "break_signature": z.boolean().default(false),
-  "collateral_threshold": z.int().min(0).default(8),
-  "dry_run": z.boolean().default(false),
-  "fail_fast": z.boolean().default(false),
+  "async": z.boolean().describe("(default: false)").optional(),
+  "atomic": z.boolean().describe("(default: true)").optional(),
+  "break_signature": z.boolean().describe("(default: false)").optional(),
+  "collateral_threshold": z.int().min(0).describe("(default: 8)").optional(),
+  "dry_run": z.boolean().describe("(default: false)").optional(),
+  "fail_fast": z.boolean().describe("(default: false)").optional(),
   "filename": z.string().nullable().optional(),
   "font": FontOptions.optional(),
-  "ocr": z.enum(["auto", "on", "off"]).default("auto"),
+  "ocr": z.enum(["auto", "on", "off"]).describe("(default: \"auto\")").optional(),
   "ocr_lang": z.array(z.enum(["zh", "en"])).optional(),
-  "output": z.enum(["zip", "files"]).default("files"),
-  "preview": z.enum(["changes", "pages", "none"]).default("changes"),
-  "redact_metadata": z.boolean().default(false),
-  "redact_style": z.enum(["box", "text"]).default("box"),
-  "redact_verify_ocr": z.boolean().default(true),
-  "retain": z.boolean().default(true),
-  "strict": z.boolean().default(false),
-  "tidy": z.boolean().default(true),
-  "watermark": z.enum(["auto", "on", "off"]).default("auto"),
+  "output": z.enum(["zip", "files"]).describe("(default: \"files\")").optional(),
+  "preview": z.enum(["changes", "pages", "none"]).describe("(default: \"changes\")").optional(),
+  "redact_metadata": z.boolean().describe("(default: false)").optional(),
+  "redact_style": z.enum(["box", "text"]).describe("(default: \"box\")").optional(),
+  "redact_verify_ocr": z.boolean().describe("(default: true)").optional(),
+  "retain": z.boolean().describe("(default: true)").optional(),
+  "strict": z.boolean().describe("(default: false)").optional(),
+  "tidy": z.boolean().describe("(default: true)").optional(),
+  "watermark": z.enum(["auto", "on", "off"]).describe("(default: \"auto\")").optional(),
   "webhook_url": z.url().min(1).max(2083).nullable().optional(),
 });
 
@@ -157,7 +157,7 @@ export const BatchRequest = z.strictObject({
 export const TextRequest = z.strictObject({
   "cursor": z.string().nullable().optional(),
   "layers": z.array(z.enum(["content", "forms", "annotations"])).min(1).optional(),
-  "limit": z.int().min(1).max(1000).default(200),
+  "limit": z.int().min(1).max(1000).describe("(default: 200)").optional(),
   "match": MatchModel.optional(),
   "pages": z.union([z.string(), z.array(z.int())]).nullable().optional(),
   "query": z.string().nullable().optional(),
@@ -169,9 +169,9 @@ export const TextRequest = z.strictObject({
  */
 export const PreviewRequest = z.strictObject({
   "highlight": z.array(z.array(z.number())).max(200).nullable().optional(),
-  "page": z.int().min(1).default(1),
+  "page": z.int().min(1).describe("(default: 1)").optional(),
   "region": z.array(z.number()).min(4).max(4).nullable().optional(),
-  "scale": z.union([z.literal(1), z.literal(2), z.literal(3)]).default(2),
+  "scale": z.union([z.literal(1), z.literal(2), z.literal(3)]).describe("(default: 2)").optional(),
   "source": SourceModel,
 });
 

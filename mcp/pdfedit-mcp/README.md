@@ -162,4 +162,4 @@ What the API refuses before touching the document:
 
 MIT. The engine behind the API is AGPL-3.0; the API serves its complete source to its
 users at `GET /source` (any key, a free test key included; the hosted MCP endpoint relays
-it at `https://mcp.niubai.vip/source`).
+it at `https://pdfedit-mcp-remote.niubai-pdfedit-remote-worker.workers.dev/source`).

@@ -51,7 +51,7 @@ describe('pdf_edit', () => {
     expect(gateway.uploads.get('f_in1')).toEqual(PDF_BYTES);
     const edit = gateway.to('/v1/edit')[0]!;
     expect(edit.body.source).toEqual({ file_id: 'f_in1' });
-    expect(edit.body.edits[0]).toMatchObject({ find: 'Acme Inc.', replace: 'Acme, Inc.', op: 'replace', fit: 'auto' });
+    expect(edit.body.edits[0]).toEqual({ find: 'Acme Inc.', replace: 'Acme, Inc.' });
     expect(edit.authorization).toBe('Bearer sk_test_123');
   });
 
@@ -187,7 +187,8 @@ describe('pdf_batch, pdf_find, pdf_preview, pdf_job', () => {
       match: { mode: 'icase' },
     });
     const body = gateway.to('/v1/text')[0]!.body;
-    expect(body).toMatchObject({ query: 'Acme Inc.', pages: '1-4', layers: ['content', 'forms'], limit: 200 });
+    expect(body).toMatchObject({ query: 'Acme Inc.', pages: '1-4', layers: ['content', 'forms'] });
+    expect(body.limit).toBeUndefined();
     expect(body.match.mode).toBe('icase');
     expect(body.source).toEqual({ file_id: 'f_in1' });
     expect(result.structuredContent).toEqual(gateway.textResponse());

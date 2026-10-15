@@ -21,11 +21,15 @@ describe('src/schemas.gen.ts', () => {
     expect(generated.GENERATED_FROM).toEqual([...COMPONENTS]);
   });
 
-  it('keeps EditModel faithful to the component: defaults, enums and extra-key rejection', () => {
+  it('keeps EditModel faithful to the component: defaults documented not injected, enums, extra-key rejection', () => {
     const spec = readSpec().components.schemas.EditModel;
     const parsed = generated.EditModel.parse({ find: 'Acme Inc.', replace: 'Acme, Inc.' });
-    expect(parsed.op).toBe(spec.properties.op.default);
-    expect(parsed.fit).toBe(spec.properties.fit.default);
+    // A default is the gateway's to apply: injecting `flatten: false` into a
+    // replace edit made the API reject the field (per-op allow-table).
+    expect(parsed.op).toBeUndefined();
+    expect(parsed.fit).toBeUndefined();
+    expect(parsed).toEqual({ find: 'Acme Inc.', replace: 'Acme, Inc.' });
+    expect(generated.EditModel.shape.op.unwrap().description).toContain(`(default: ${JSON.stringify(spec.properties.op.default)})`);
     expect(() => generated.EditModel.parse({ find: 'x', op: 'rewrite' })).toThrow();
     expect(() => generated.EditModel.parse({ find: 'x', nonsense: 1 })).toThrow();
   });
@@ -42,19 +46,19 @@ describe('src/schemas.gen.ts', () => {
     expect(Object.keys(generated.BatchOptions.shape).filter((k) => !batchOnly.includes(k)).sort()).toEqual(
       Object.keys(generated.GatewayOptions.shape).sort(),
     );
-    expect(EditOptions.parse({}).watermark).toBe('auto');
+    expect(EditOptions.parse({}).watermark).toBeUndefined();
+    expect(EditOptions.shape.watermark.unwrap().description).toContain('(default: "auto")');
     expect(EditOptions.parse({ async: true }).async).toBe(true);
   });
 
   it('builds the find/preview inputs from the request components, with source replaced by file', () => {
     expect(Object.keys(PdfFindInput.shape)).not.toContain('source');
     expect(Object.keys(PdfFindInput.shape)).toContain('file');
-    expect(PdfFindInput.parse({ file: 'a.pdf' }).limit).toBe(
-      readSpec().components.schemas.TextRequest.properties.limit.default,
+    expect(PdfFindInput.parse({ file: 'a.pdf' }).limit).toBeUndefined();
+    expect(PdfFindInput.shape.limit.unwrap().description).toContain(
+      `(default: ${readSpec().components.schemas.TextRequest.properties.limit.default})`,
     );
-    expect(PdfPreviewInput.parse({ file: 'a.pdf' }).scale).toBe(
-      readSpec().components.schemas.PreviewRequest.properties.scale.default,
-    );
+    expect(PdfPreviewInput.parse({ file: 'a.pdf' }).scale).toBeUndefined();
   });
 
   it('rejects an edits list longer than the API accepts', () => {

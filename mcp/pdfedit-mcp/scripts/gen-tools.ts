@@ -133,9 +133,15 @@ function emitObject(schema: JsonSchema, indent = '  '): string {
   for (const name of names) {
     const property = properties[name]!;
     let expr = emit(property);
-    if (property.description) expr += `.describe(${quote(property.description)})`;
-    if (property.default !== undefined) expr += `.default(${JSON.stringify(property.default)})`;
-    else if (!required.includes(name)) expr += '.optional()';
+    // Defaults are documented, never injected: zod would fill `flatten: false`
+    // into a `replace` edit and the gateway's per-op allow-table rejects the
+    // field it did not ask for. The API applies its own defaults server-side.
+    let description = property.description ?? '';
+    if (property.default !== undefined) {
+      description = `${description}${description ? ' ' : ''}(default: ${JSON.stringify(property.default)})`;
+    }
+    if (description) expr += `.describe(${quote(description)})`;
+    if (!required.includes(name)) expr += '.optional()';
     lines.push(`${indent}  ${quote(name)}: ${expr},`);
   }
 
