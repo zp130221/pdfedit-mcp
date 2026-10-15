@@ -14,6 +14,7 @@ on:
       - main
     tags:
       - "mcp-v*"
+      - "sdk-v*"
   pull_request:
     branches:
       - main
@@ -133,7 +134,7 @@ jobs:
   # extra two minutes are cheaper than a published package nobody can
   # reproduce.
   publish:
-    name: npm publish
+    name: npm publish (mcp)
     if: startsWith(github.ref, 'refs/tags/mcp-v')
     needs: [node, python]
     runs-on: ubuntu-24.04
@@ -196,3 +197,54 @@ jobs:
       - name: Next step
         run: |
           echo "::notice::published. Now: cd mcp/pdfedit-mcp && mcp-publisher login github && mcp-publisher publish (docs/launch/registry.md)"
+
+  # =========================================================================
+  # publish-sdk -- npm, on a sdk-v* tag only (the TypeScript SDK)
+  # =========================================================================
+  publish-sdk:
+    name: npm publish (ts sdk)
+    if: startsWith(github.ref, 'refs/tags/sdk-v')
+    needs: [node, python]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: sdk/typescript/package-lock.json
+
+      - name: Install
+        working-directory: sdk/typescript
+        run: npm ci
+
+      - name: Build
+        working-directory: sdk/typescript
+        run: npm run build
+
+      - name: Tests
+        working-directory: sdk/typescript
+        run: npm test
+
+      - name: Tag matches package version
+        working-directory: sdk/typescript
+        run: |
+          tag="${GITHUB_REF_NAME#sdk-v}"
+          version=$(node -p "require('./package.json').version")
+          echo "tag ${tag}, package.json ${version}"
+          if [ "${tag}" != "${version}" ]; then
+            echo "::error::tag sdk-v${tag} does not match package.json version ${version}"
+            exit 1
+          fi
+
+      - name: Publish
+        working-directory: sdk/typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
