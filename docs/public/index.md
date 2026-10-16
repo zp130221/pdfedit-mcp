@@ -22,8 +22,8 @@ Also available as [an MCP server](../../mcp/pdfedit-mcp/README.md) (one line in 
 Code, Cursor or Claude Desktop), a [TypeScript SDK](../../sdk/typescript/README.md) and a
 [Python SDK](../../sdk/python/README.md).
 
-> **Status.** The hosted API is `https://api.niubai.vip`; packages publish under the
-> npm scope `@niubai/`. Nothing on this page is billed until the plans go live.
+> The hosted API is `https://api.niubai.vip`; packages publish under the npm scope
+> `@niubai/`. Quick start: <https://api.niubai.vip/quickstart>.
 
 ## What it does
 

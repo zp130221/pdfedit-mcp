@@ -6,7 +6,8 @@ client over the PDF Edit API — the models are generated from the API's OpenAPI
 schema, so they are the API, and the only dependency is `httpx`.
 
 ```bash
-pip install pdfedit
+# not on PyPI yet (the name "pdfedit" there belongs to another project)
+pip install "git+https://github.com/zp130221/pdfedit-mcp.git#subdirectory=sdk/python"
 ```
 
 ### Replace text
