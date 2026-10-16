@@ -1716,6 +1716,14 @@
         "title": "ValidationError",
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "sk_live_… or sk_test_…",
+        "description": "Your API key from the account page, as `Authorization: Bearer <key>`.",
+        "scheme": "bearer",
+        "type": "http"
+      }
     }
   },
   "info": {
@@ -4812,6 +4820,11 @@
       }
     }
   },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "tags": [
     {
       "description": "Read a document: spans, ids, form fields (spec 2.1).",

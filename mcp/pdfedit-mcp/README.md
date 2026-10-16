@@ -178,12 +178,12 @@ What the API refuses before touching the document:
 
 ## Everything else
 
-- [Examples](../../docs/public/examples/README.md) — ten before/after pairs, each with
+- [Examples](https://github.com/zp130221/pdfedit-mcp/blob/main/docs/public/examples/README.md) — ten before/after pairs, each with
   the request that produced it.
-- [Landing page and pricing](../../docs/public/index.md).
+- [Landing page and pricing](https://github.com/zp130221/pdfedit-mcp/blob/main/docs/public/index.md).
 - [Hosted MCP endpoint](https://github.com/zp130221/pdfedit-mcp/blob/main/mcp/remote-worker/README.md) — OAuth 2.1, bearer passthrough, the
   keyless tier.
-- SDKs: [TypeScript](../../sdk/typescript/README.md), [Python](../../sdk/python/README.md).
+- SDKs: [TypeScript](https://github.com/zp130221/pdfedit-mcp/blob/main/sdk/typescript/README.md), [Python](https://github.com/zp130221/pdfedit-mcp/blob/main/sdk/python/README.md).
 
 MIT. The engine behind the API is AGPL-3.0; the API serves its complete source to its
 users at `GET /source` (any key, a free test key included; the hosted MCP endpoint relays
