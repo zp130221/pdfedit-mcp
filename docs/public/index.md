@@ -117,7 +117,7 @@ that look like sealed or official papers are watermarked by default.
 
 ## Start
 
-- **MCP**: `claude mcp add --env PDFEDIT_API_KEY=... pdfedit -- npx -y @niubai/pdfedit-mcp`
+- **MCP**: `claude mcp add pdfedit -e PDFEDIT_API_KEY=... pdfedit -- npx -y @niubai/pdfedit-mcp`
   → [full install notes](../../mcp/pdfedit-mcp/README.md)
 - **HTTP**: the OpenAPI document is [`openapi/openapi.json`](../../openapi/openapi.json).
 - **SDKs**: [TypeScript](../../sdk/typescript/README.md) ·

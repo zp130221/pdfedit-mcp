@@ -38,7 +38,7 @@ documents) takes one email at <https://api.niubai.vip>.
 **Claude Code** — one line:
 
 ```bash
-claude mcp add --env PDFEDIT_API_KEY=sk_live_your_key pdfedit -- npx -y @niubai/pdfedit-mcp
+claude mcp add pdfedit -e PDFEDIT_API_KEY=sk_live_your_key -- npx -y @niubai/pdfedit-mcp
 ```
 
 **Cursor** — the deeplink (Settings → MCP also takes the same JSON):
