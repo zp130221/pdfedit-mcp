@@ -74,7 +74,7 @@ export const GatewayOptions = z.strictObject({
   "strict": z.boolean().describe("(default: false)").optional(),
   "tidy": z.boolean().describe("(default: true)").optional(),
   "watermark": z.enum(["auto", "on", "off"]).describe("(default: \"auto\")").optional(),
-  "webhook_url": z.url().min(1).max(2083).nullable().optional(),
+  "webhook_url": z.url().min(1).max(2083).nullable().describe("Called with POST when the job finishes: the body is the job's result (what GET /v1/jobs/{id} returns) plus `event` (job.done, job.failed, batch.done ...) and `job_id`, signed in `X-Signature` (hex HMAC-SHA256 of the raw body with the account's webhook secret). Non-2xx answers are retried after 1, 5 and 30 minutes. https only.").optional(),
 });
 
 export const ScopeModel = z.strictObject({
@@ -128,7 +128,7 @@ export const BatchOptions = z.strictObject({
   "strict": z.boolean().describe("(default: false)").optional(),
   "tidy": z.boolean().describe("(default: true)").optional(),
   "watermark": z.enum(["auto", "on", "off"]).describe("(default: \"auto\")").optional(),
-  "webhook_url": z.url().min(1).max(2083).nullable().optional(),
+  "webhook_url": z.url().min(1).max(2083).nullable().describe("Called with POST when the job finishes: the body is the job's result (what GET /v1/jobs/{id} returns) plus `event` (job.done, job.failed, batch.done ...) and `job_id`, signed in `X-Signature` (hex HMAC-SHA256 of the raw body with the account's webhook secret). Non-2xx answers are retried after 1, 5 and 30 minutes. https only.").optional(),
 });
 
 /**

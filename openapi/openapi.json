@@ -1,6 +1,54 @@
 {
   "components": {
     "schemas": {
+      "AccountUsageOut": {
+        "additionalProperties": true,
+        "properties": {
+          "credit_pages": {
+            "description": "Credit-pack pages left; spent before the allowance, never expire.",
+            "title": "Credit Pages",
+            "type": "integer"
+          },
+          "mode": {
+            "description": "`live` or `test`.",
+            "title": "Mode",
+            "type": "string"
+          },
+          "overage_pages": {
+            "description": "Recorded for information; never invoiced.",
+            "title": "Overage Pages",
+            "type": "integer"
+          },
+          "pages_allowance": {
+            "title": "Pages Allowance",
+            "type": "integer"
+          },
+          "pages_remaining": {
+            "title": "Pages Remaining",
+            "type": "integer"
+          },
+          "pages_used": {
+            "title": "Pages Used",
+            "type": "integer"
+          },
+          "period": {
+            "description": "`yyyy-mm` for live keys, `yyyy-mm-dd` for test keys.",
+            "title": "Period",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "pages_used",
+          "pages_allowance",
+          "overage_pages",
+          "credit_pages",
+          "pages_remaining",
+          "mode"
+        ],
+        "title": "AccountUsageOut",
+        "type": "object"
+      },
       "AtModel": {
         "additionalProperties": false,
         "description": "Where an `insert` writes: a point, or a piece of text to hang off.\n\nThe point is the BASELINE ORIGIN of the first line written -- where the bottom left\nof the first glyph sits, not the top left of a text box. That is how every\ncoordinate in this engine is expressed (a span's `origin`, `/v1/text`'s span\ngeometry), so the x/y of a span read out of a document can be used here unchanged;\nand it is the one of the two that does not move when `fit` shrinks the size.",
@@ -217,10 +265,57 @@
                 "type": "null"
               }
             ],
+            "description": "Called with POST when the job finishes: the body is the job's result (what GET /v1/jobs/{id} returns) plus `event` (job.done, job.failed, batch.done ...) and `job_id`, signed in `X-Signature` (hex HMAC-SHA256 of the raw body with the account's webhook secret). Non-2xx answers are retried after 1, 5 and 30 minutes. https only.",
             "title": "Webhook Url"
           }
         },
         "title": "BatchOptions",
+        "type": "object"
+      },
+      "BatchRecordOut": {
+        "additionalProperties": true,
+        "description": "One record of a batch, as ``GET /v1/jobs/{id}`` reports it (spec §6).",
+        "properties": {
+          "changes_count": {
+            "default": 0,
+            "title": "Changes Count",
+            "type": "integer"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutputOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "status"
+        ],
+        "title": "BatchRecordOut",
         "type": "object"
       },
       "BatchRequest": {
@@ -410,24 +505,59 @@
         "title": "ChangeOut",
         "type": "object"
       },
-      "CheckoutStart": {
+      "CheckoutOut": {
         "properties": {
-          "email": {
-            "maxLength": 254,
-            "title": "Email",
+          "item": {
+            "title": "Item",
             "type": "string"
           },
-          "item": {
-            "description": "starter | growth | scale | pack_500 | pack_5k",
-            "title": "Item",
+          "kind": {
+            "description": "`plan` or `pack`.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "url": {
+            "description": "Open in a browser to pay.",
+            "title": "Url",
             "type": "string"
           }
         },
         "required": [
-          "email",
-          "item"
+          "url",
+          "item",
+          "kind"
         ],
-        "title": "CheckoutStart",
+        "title": "CheckoutOut",
+        "type": "object"
+      },
+      "CheckoutRequest": {
+        "properties": {
+          "pack": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "pack_500 | pack_5k",
+            "title": "Pack"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "starter | growth | scale",
+            "title": "Plan"
+          }
+        },
+        "title": "CheckoutRequest",
         "type": "object"
       },
       "EditModel": {
@@ -767,6 +897,44 @@
         "title": "FieldOut",
         "type": "object"
       },
+      "FileCreateOut": {
+        "properties": {
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO 8601; the upload slot and the file expire then.",
+            "title": "Expires At"
+          },
+          "file_id": {
+            "description": "Pass as `source.file_id` once the bytes are uploaded.",
+            "title": "File Id",
+            "type": "string"
+          },
+          "headers": {
+            "additionalProperties": true,
+            "description": "Headers the PUT must carry.",
+            "title": "Headers",
+            "type": "object"
+          },
+          "upload_url": {
+            "description": "PUT the document here.",
+            "title": "Upload Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_id",
+          "upload_url"
+        ],
+        "title": "FileCreateOut",
+        "type": "object"
+      },
       "FontOptions": {
         "additionalProperties": false,
         "properties": {
@@ -958,6 +1126,7 @@
                 "type": "null"
               }
             ],
+            "description": "Called with POST when the job finishes: the body is the job's result (what GET /v1/jobs/{id} returns) plus `event` (job.done, job.failed, batch.done ...) and `job_id`, signed in `X-Signature` (hex HMAC-SHA256 of the raw body with the account's webhook secret). Non-2xx answers are retried after 1, 5 and 30 minutes. https only.",
             "title": "Webhook Url"
           }
         },
@@ -977,19 +1146,224 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
-      "LoginStart": {
+      "HealthOut": {
         "properties": {
-          "email": {
-            "description": "Where the sign-in link is sent.",
-            "maxLength": 254,
-            "title": "Email",
+          "status": {
+            "default": "ok",
+            "description": "\"ok\" when the API and its database answer.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "HealthOut",
+        "type": "object"
+      },
+      "JobListOut": {
+        "properties": {
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobSummaryOut"
+            },
+            "title": "Jobs",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pass as `cursor` for the next page; null on the last.",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "jobs"
+        ],
+        "title": "JobListOut",
+        "type": "object"
+      },
+      "JobResponse": {
+        "additionalProperties": true,
+        "description": "``GET /v1/jobs/{id}``: the sync body once the job is finished.\n\nWhile the job is queued or running only ``status``, ``job_id`` and\n``progress`` are present; a finished job carries everything the sync\nresponse carries (plus ``records`` for a batch).",
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "default": "edit",
+            "title": "Kind",
+            "type": "string"
+          },
+          "progress": {
+            "additionalProperties": true,
+            "title": "Progress",
+            "type": "object"
+          },
+          "records": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BatchRecordOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Records"
+          },
+          "status": {
+            "title": "Status",
             "type": "string"
           }
         },
         "required": [
-          "email"
+          "status",
+          "job_id"
         ],
-        "title": "LoginStart",
+        "title": "JobResponse",
+        "type": "object"
+      },
+      "JobSummaryOut": {
+        "additionalProperties": true,
+        "properties": {
+          "changes": {
+            "default": 0,
+            "title": "Changes",
+            "type": "integer"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "pages_billed": {
+            "default": 0,
+            "title": "Pages Billed",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "webhook_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook State"
+          }
+        },
+        "required": [
+          "job_id",
+          "kind",
+          "status"
+        ],
+        "title": "JobSummaryOut",
+        "type": "object"
+      },
+      "LimitsOut": {
+        "additionalProperties": true,
+        "properties": {
+          "concurrency": {
+            "title": "Concurrency",
+            "type": "integer"
+          },
+          "max_file_mb": {
+            "title": "Max File Mb",
+            "type": "integer"
+          },
+          "max_pages": {
+            "title": "Max Pages",
+            "type": "integer"
+          },
+          "monthly_pages": {
+            "title": "Monthly Pages",
+            "type": "integer"
+          },
+          "overage_allowed": {
+            "description": "Always false: every plan is prepaid.",
+            "title": "Overage Allowed",
+            "type": "boolean"
+          },
+          "rate_per_minute": {
+            "title": "Rate Per Minute",
+            "type": "integer"
+          },
+          "sync_max_edited_pages": {
+            "description": "Edits touching more pages than this run as a job.",
+            "title": "Sync Max Edited Pages",
+            "type": "integer"
+          },
+          "watermark_off_allowed": {
+            "title": "Watermark Off Allowed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "monthly_pages",
+          "overage_allowed",
+          "watermark_off_allowed",
+          "concurrency",
+          "rate_per_minute",
+          "max_file_mb",
+          "max_pages",
+          "sync_max_edited_pages"
+        ],
+        "title": "LimitsOut",
         "type": "object"
       },
       "MatchModel": {
@@ -1302,21 +1676,6 @@
           }
         },
         "title": "ScopeModel",
-        "type": "object"
-      },
-      "SignupRequest": {
-        "properties": {
-          "email": {
-            "description": "Where the account is registered; the key is returned once in the response.",
-            "maxLength": 254,
-            "title": "Email",
-            "type": "string"
-          }
-        },
-        "required": [
-          "email"
-        ],
-        "title": "SignupRequest",
         "type": "object"
       },
       "SourceModel": {
@@ -1715,6 +2074,64 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "WebhookAckOut": {
+        "properties": {
+          "credit_pages": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit Pages"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "description": "`applied` or `ignored`.",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "WebhookAckOut",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -1727,7 +2144,7 @@
     }
   },
   "info": {
-    "description": "Edit text inside existing PDFs: replace, delete, redact, insert and fill forms, keeping the original fonts and layout, with every change verified before it is returned.\n\n**Source.** The editing engine is free software under the AGPL-3.0; its complete source is served to API users at `GET /source` (a tar.gz of the engine package, its Dockerfile and the licence).",
+    "description": "Edit text inside existing PDFs: replace, delete, redact, insert and fill forms, keeping the original fonts and layout, with every change verified before it is returned.\n\n**Source.** The editing engine is free software under the AGPL-3.0; its complete source is served to API users at `GET /source` (a tar.gz of the engine package, its Dockerfile and the licence).\n\n## Error codes\n\nEvery error is `{\"error\": {\"code\", \"message\", \"hint\"}}` with one of these codes; `X-Request-Id` is on every response.\n\n| `error.code` | HTTP | Meaning |\n| --- | --- | --- |\n| `invalid_request` | 400 | The request is malformed, an edit is impossible as written, or an Idempotency-Key was reused with a different body. |\n| `unauthorized` | 401 | No key, an unknown key, or a revoked key. |\n| `quota_exceeded` | 402 | The month's allowance and any credit-pack pages are used up; buy a pack or upgrade on the account page. |\n| `forbidden_watermark_off` | 403 | options.watermark \"off\" on a flagged document needs a plan that allows it and accepted terms. |\n| `not_found` | 404 | No such file, job or route for this account. |\n| `conflict` | 409 | A request with this Idempotency-Key is still running; wait and re-poll, do not start another. |\n| `too_large` | 413 | The document exceeds the plan's size or page limit. |\n| `document_encrypted` | 422 | The PDF is encrypted and no (or a wrong) password was given. |\n| `document_unsupported` | 422 | The file is not a PDF the engine can open (damaged, a portfolio, a non-PDF). |\n| `signed_document` | 422 | The document carries a digital signature; pass options.break_signature true to edit it anyway. |\n| `edit_failed` | 422 | Every requested edit failed verification and was rolled back; see failed[] for the reasons. |\n| `rate_limited` | 429 | Over the plan's requests-per-minute, or the service is busy; honour Retry-After. |\n| `engine_error` | 500 | The engine crashed on this document; retry once, then report the X-Request-Id. |\n| `upstream_error` | 502 | source.url (or records_url) could not be fetched. |\n| `engine_timeout` | 504 | The synchronous run did not finish in time; send it again with options.async true. |\n\n## Headers\n\n`Idempotency-Key` on `POST /v1/edit` and `POST /v1/batch` makes retries safe. Rate-limited operations return `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`; a `429` adds `Retry-After`.\n\n## Webhooks\n\nSet `options.webhook_url` on an edit or a batch and the gateway POSTs the job's result body (plus `event` and `job_id`) to that URL when the job finishes, signed with `X-Signature` (HMAC-SHA256 of the raw body with your account's webhook secret from `GET /v1/limits`'s account tooling or the CLI), retrying at 1, 5 and 30 minutes on a non-2xx.",
     "title": "PDF Edit API Gateway",
     "version": "2026-10-12"
   },
@@ -1735,105 +2152,26 @@
   "paths": {
     "/healthz": {
       "get": {
+        "description": "`{\"status\": \"ok\"}` when the API and its database answer. No key needed.",
         "operationId": "healthz_healthz_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "$ref": "#/components/schemas/HealthOut"
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: rate_limited"
+            }
           },
           "500": {
             "content": {
@@ -1843,30 +2181,19 @@
                 }
               }
             },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: engine_error",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Healthz"
+        "security": [],
+        "summary": "Health check"
       }
     },
     "/source": {
@@ -1878,17 +2205,33 @@
             "content": {
               "application/gzip": {}
             },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: invalid_request"
+            }
           },
           "401": {
             "content": {
@@ -1898,67 +2241,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            }
           },
           "429": {
             "content": {
@@ -1968,40 +2277,42 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Engine source (AGPL-3.0)",
+        "summary": "Download the engine's source (AGPL-3.0)",
         "tags": [
           "meta"
         ]
@@ -2009,8 +2320,20 @@
     },
     "/v1/batch": {
       "post": {
-        "description": "Queue a batch job. Plain ``def``: resolving the template blocks.",
+        "description": "One template document, one set of edits with `{placeholders}`, many records (inline or from `records_url`): one output document per record, as a job. Answers `202` with a `job_id`; `GET /v1/jobs/{job_id}` returns one entry per record once it is done, or set `options.webhook_url`.",
         "operationId": "post_batch_v1_batch_post",
+        "parameters": [
+          {
+            "description": "Makes a retry safe. The same key with the same body returns the first request's result (a replay, never a second charge); a duplicate that arrives while the first is still running waits for it, then answers `409 conflict` if it has not finished; the same key with a different body is refused `400`. Without the header the gateway derives a key from the request's content, so a blind retry of a timed-out POST is still safe. Keys are scoped to the account and the key's mode.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "maxLength": 255,
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2028,7 +2351,33 @@
                 "schema": {}
               }
             },
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {
@@ -2038,7 +2387,33 @@
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -2048,7 +2423,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "402": {
             "content": {
@@ -2058,7 +2459,33 @@
                 }
               }
             },
-            "description": "error.code is one of: quota_exceeded"
+            "description": "error.code is one of: quota_exceeded",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "403": {
             "content": {
@@ -2068,27 +2495,33 @@
                 }
               }
             },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: forbidden_watermark_off",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
+            }
           },
           "413": {
             "content": {
@@ -2098,7 +2531,33 @@
                 }
               }
             },
-            "description": "error.code is one of: too_large"
+            "description": "error.code is one of: too_large",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
             "content": {
@@ -2108,7 +2567,33 @@
                 }
               }
             },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            "description": "error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "content": {
@@ -2118,17 +2603,39 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
+            }
           },
           "502": {
             "content": {
@@ -2138,346 +2645,50 @@
                 }
               }
             },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: upstream_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Post Batch",
+        "summary": "Run the same edits over many records",
         "tags": [
           "batch"
         ]
       }
     },
     "/v1/billing/checkout": {
-      "get": {
-        "description": "A hosted checkout link for a plan upgrade or a credit pack.\n\n``free`` is refused: there is nothing to buy, and a link that charges\nnothing is a support ticket waiting to happen. Downgrades are not\ncheckouts either -- they happen in the provider's portal, and arrive\nhere as ``subscription.canceled``.",
-        "operationId": "checkout_v1_billing_checkout_get",
-        "parameters": [
-          {
-            "description": "starter | growth | scale",
-            "in": "query",
-            "name": "plan",
-            "required": false,
-            "schema": {
-              "description": "starter | growth | scale",
-              "title": "Plan",
-              "type": "string"
-            }
-          },
-          {
-            "description": "a credit pack name, e.g. pack_5k",
-            "in": "query",
-            "name": "pack",
-            "required": false,
-            "schema": {
-              "description": "a credit pack name, e.g. pack_5k",
-              "title": "Pack",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Checkout V1 Billing Checkout Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: invalid_request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
-          }
-        },
-        "summary": "Checkout",
-        "tags": [
-          "billing"
-        ]
-      }
-    },
-    "/v1/billing/webhook/creem": {
       "post": {
-        "description": "Apply one Creem event to the account it names.\n\n``async def`` for one reason: the raw body. The signature covers the\nbytes as sent, so they have to be read before any parsing, and reading\na request body is the one thing a sync route cannot do.",
-        "operationId": "creem_webhook_v1_billing_webhook_creem_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Creem Webhook V1 Billing Webhook Creem Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: invalid_request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
-          }
-        },
-        "summary": "Creem Webhook",
-        "tags": [
-          "billing"
-        ]
-      }
-    },
-    "/v1/checkout/start": {
-      "post": {
-        "description": "For the pricing page. Creates the account for the email if it does not exist (and its first key, returned once), then returns the merchant checkout URL for the plan or pack. Payment upgrades the account automatically through the merchant webhook. An existing account gets the checkout URL only -- its key is never re-issued here.",
-        "operationId": "checkout_start_v1_checkout_start_post",
+        "description": "A merchant-of-record checkout URL for a subscription plan or a credit pack, bound to the calling key's account. Open it in a browser; payment applies to the account through the webhook within a minute. The account page offers the same links without an API call.",
+        "operationId": "checkout_v1_billing_checkout_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CheckoutStart"
+                "$ref": "#/components/schemas/CheckoutRequest"
               }
             }
           },
@@ -2488,13 +2699,40 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/CheckoutOut",
                   "additionalProperties": true,
-                  "title": "Response Checkout Start V1 Checkout Start Post",
+                  "title": "Response Checkout V1 Billing Checkout Post",
                   "type": "object"
                 }
               }
             },
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {
@@ -2504,7 +2742,33 @@
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -2514,67 +2778,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            }
           },
           "429": {
             "content": {
@@ -2584,17 +2814,39 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
+            }
           },
           "502": {
             "content": {
@@ -2604,9 +2856,68 @@
                 }
               }
             },
-            "description": "error.code is one of: upstream_error"
+            "description": "error.code is one of: upstream_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a checkout link",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/v1/billing/webhook/creem": {
+      "post": {
+        "description": "Receives payment, subscription, refund and dispute events from Creem, verifies the `creem-signature` HMAC and applies them to the account. Not for clients: deliveries without a valid signature are refused.",
+        "operationId": "creem_webhook_v1_billing_webhook_creem_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAckOut",
+                  "additionalProperties": true,
+                  "title": "Response Creem Webhook V1 Billing Webhook Creem Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
-          "504": {
+          "400": {
             "content": {
               "application/json": {
                 "schema": {
@@ -2614,19 +2925,58 @@
                 }
               }
             },
-            "description": "error.code is one of: engine_timeout"
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
-        "summary": "Start a purchase from the website: account, key and checkout link in one step",
+        "security": [],
+        "summary": "Merchant webhook (called by Creem)",
         "tags": [
-          "account"
+          "billing"
         ]
       }
     },
     "/v1/edit": {
       "post": {
-        "description": "Plain ``def``: the engine run belongs on a threadpool worker.",
+        "description": "Apply one or more edits (replace, delete, redact, insert, form fill) to a document and get the edited PDF back with every change verified. Send the document as a multipart upload (`file`) with `edits` as a JSON string, or as JSON with `source.url` or a `source.file_id` from an earlier upload. Small documents answer `200` with the result at once; larger ones (over the plan's sync page limit) and any request with `options.async` true answer `202` with a `job_id` to poll at `GET /v1/jobs/{job_id}` (or set `options.webhook_url` to be called when it finishes). Add `Accept: application/pdf` to receive the edited file itself instead of JSON. Each entry in `changes` says which font was written (`font_source`, `font_used`), whether the pixel check passed (`verified`, `collateral_pixels`) and links a before/after preview; `unmatched` and `failed` list what did not happen and why.",
         "operationId": "post_edit_v1_edit_post",
+        "parameters": [
+          {
+            "description": "Makes a retry safe. The same key with the same body returns the first request's result (a replay, never a second charge); a duplicate that arrives while the first is still running waits for it, then answers `409 conflict` if it has not finished; the same key with a different body is refused `400`. Without the header the gateway derives a key from the request's content, so a blind retry of a timed-out POST is still safe. Keys are scoped to the account and the key's mode.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "maxLength": 255,
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2679,7 +3029,33 @@
                 }
               }
             },
-            "description": "The edit ran"
+            "description": "The edit ran",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "202": {
             "content": {
@@ -2689,7 +3065,33 @@
                 }
               }
             },
-            "description": "Accepted as a job"
+            "description": "Accepted as a job",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {
@@ -2699,7 +3101,33 @@
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -2709,7 +3137,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "402": {
             "content": {
@@ -2719,7 +3173,33 @@
                 }
               }
             },
-            "description": "error.code is one of: quota_exceeded"
+            "description": "error.code is one of: quota_exceeded",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "403": {
             "content": {
@@ -2729,17 +3209,33 @@
                 }
               }
             },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: forbidden_watermark_off",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: not_found"
+            }
           },
           "409": {
             "content": {
@@ -2749,7 +3245,33 @@
                 }
               }
             },
-            "description": "error.code is one of: conflict"
+            "description": "error.code is one of: conflict",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "413": {
             "content": {
@@ -2759,7 +3281,33 @@
                 }
               }
             },
-            "description": "error.code is one of: too_large"
+            "description": "error.code is one of: too_large",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
             "content": {
@@ -2769,7 +3317,33 @@
                 }
               }
             },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            "description": "error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "content": {
@@ -2779,7 +3353,39 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -2789,7 +3395,33 @@
                 }
               }
             },
-            "description": "error.code is one of: engine_error"
+            "description": "error.code is one of: engine_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "502": {
             "content": {
@@ -2799,7 +3431,33 @@
                 }
               }
             },
-            "description": "error.code is one of: upstream_error"
+            "description": "error.code is one of: upstream_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "504": {
             "content": {
@@ -2809,10 +3467,36 @@
                 }
               }
             },
-            "description": "error.code is one of: engine_timeout"
+            "description": "error.code is one of: engine_timeout",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
-        "summary": "Post Edit",
+        "summary": "Edit a PDF",
         "tags": [
           "edit"
         ]
@@ -2820,30 +3504,47 @@
     },
     "/v1/files": {
       "post": {
-        "description": "Reserve a file id and return a presigned upload URL.",
+        "description": "For documents you would rather not send inline: returns a `file_id` and a presigned `upload_url`. `PUT` the bytes there with the given `headers`, then pass `source.file_id` to `/v1/edit`. Uploads expire with the retention window.",
         "operationId": "create_file_v1_files_post",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/FileCreateOut",
                   "additionalProperties": true,
                   "title": "Response Create File V1 Files Post",
                   "type": "object"
                 }
               }
             },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: invalid_request"
+            }
           },
           "401": {
             "content": {
@@ -2853,67 +3554,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            }
           },
           "429": {
             "content": {
@@ -2923,40 +3590,42 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Create File",
+        "summary": "Reserve an upload",
         "tags": [
           "files"
         ]
@@ -2964,7 +3633,7 @@
     },
     "/v1/files/{file_id}": {
       "delete": {
-        "description": "Delete a file (owner only), cascading to its derived children.",
+        "description": "Remove an uploaded or produced document before its 24-hour retention ends, together with the outputs and previews derived from it. Owner only.",
         "operationId": "delete_file_v1_files__file_id__delete",
         "parameters": [
           {
@@ -2979,17 +3648,33 @@
         ],
         "responses": {
           "204": {
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: invalid_request"
+            }
           },
           "401": {
             "content": {
@@ -2999,27 +3684,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
+            }
           },
           "404": {
             "content": {
@@ -3029,37 +3720,33 @@
                 }
               }
             },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: not_found",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            }
           },
           "429": {
             "content": {
@@ -3069,40 +3756,42 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Delete File",
+        "summary": "Delete a file",
         "tags": [
           "files"
         ]
@@ -3110,6 +3799,7 @@
     },
     "/v1/files/{file_id}/content": {
       "get": {
+        "description": "The bytes of an output, preview or uploaded document. The URL comes signed (`token`) from a response; no API key is needed and the link expires.",
         "operationId": "get_file_content_v1_files__file_id__content_get",
         "parameters": [
           {
@@ -3134,11 +3824,28 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
-                "schema": {}
+              "application/pdf": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
               }
             },
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {
@@ -3148,7 +3855,15 @@
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -3158,27 +3873,15 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
+            }
           },
           "404": {
             "content": {
@@ -3188,86 +3891,24 @@
                 }
               }
             },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: not_found",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Get File Content",
+        "summary": "Download a file",
         "tags": [
           "files"
         ]
       },
       "put": {
-        "description": "Stays ``async`` -- it consumes the request body, which only the event\nloop can iterate -- and hands the one blocking step (writing the file and\nupdating the row) to a threadpool worker.",
+        "description": "The second step of `POST /v1/files`: `PUT` the document to the presigned URL with the headers it returned. `204` when stored.",
         "operationId": "put_file_content_v1_files__file_id__content_put",
         "parameters": [
           {
@@ -3291,7 +3932,15 @@
         ],
         "responses": {
           "204": {
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {
@@ -3301,7 +3950,15 @@
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -3311,27 +3968,15 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
+            }
           },
           "404": {
             "content": {
@@ -3341,17 +3986,15 @@
                 }
               }
             },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: not_found",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: conflict"
+            }
           },
           "413": {
             "content": {
@@ -3361,60 +4004,18 @@
                 }
               }
             },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: too_large",
+            "headers": {
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Put File Content",
+        "summary": "Upload the file's bytes",
         "tags": [
           "files"
         ]
@@ -3422,7 +4023,7 @@
     },
     "/v1/fonts": {
       "get": {
-        "description": "``{\"fonts\": [{name, family, styles, scripts, source}, ...]}``.",
+        "description": "The fonts this deployment can write with by name, for `style.font` and for reading `font_used` in a change. The document's own embedded fonts are always preferred when they carry the needed glyphs.",
         "operationId": "get_fonts_v1_fonts_get",
         "responses": {
           "200": {
@@ -3433,17 +4034,33 @@
                 }
               }
             },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: invalid_request"
+            }
           },
           "401": {
             "content": {
@@ -3453,67 +4070,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            }
           },
           "429": {
             "content": {
@@ -3523,40 +4106,42 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Get Fonts",
+        "summary": "List fonts",
         "tags": [
           "fonts"
         ]
@@ -3564,7 +4149,7 @@
     },
     "/v1/jobs": {
       "get": {
-        "description": "Audit metadata for the account's jobs, newest first, no file contents.\n\nPaged by ``cursor``: the ``job_id`` of the last row returned. Job ids are\nULIDs, so ``id < cursor`` is both the pagination predicate and a\nchronological one -- no offset, and a page is stable while new jobs\narrive.\n\n``since`` is applied in Python rather than in SQL on purpose: SQLite\nstores ``DateTime(timezone=True)`` naive (see ``db.as_utc``), so an\noffset-aware bound in a WHERE clause compares wrongly. Because the rows\ncome back newest-first, the first row older than ``since`` ends the page\nand nothing qualifying can be below it.",
+        "description": "The account's jobs, newest first, with status, kind, timings, pages billed and the number of changes. Filter with `since` and `status`; page with `cursor` and `limit`. Kept 30 days.",
         "operationId": "list_jobs_v1_jobs_get",
         "parameters": [
           {
@@ -3637,10 +4222,38 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/JobListOut"
+                }
               }
             },
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {
@@ -3650,7 +4263,33 @@
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -3660,67 +4299,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            }
           },
           "429": {
             "content": {
@@ -3730,40 +4335,42 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "List Jobs",
+        "summary": "List jobs",
         "tags": [
           "jobs"
         ]
@@ -3771,7 +4378,7 @@
     },
     "/v1/jobs/{job_id}": {
       "get": {
-        "description": "One job: its status, its progress, and the sync body once it is done.",
+        "description": "The state of an async edit or batch. While it runs: `status` and `progress`. When it is done: the same body a synchronous edit returns (`changes`, `output`, `warnings`, `usage`), and `records` for a batch. Output links are valid for 24 hours.",
         "operationId": "get_job_v1_jobs__job_id__get",
         "parameters": [
           {
@@ -3788,20 +4395,38 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "$ref": "#/components/schemas/JobResponse"
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -3811,27 +4436,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
+            }
           },
           "404": {
             "content": {
@@ -3841,37 +4472,33 @@
                 }
               }
             },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: not_found",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            }
           },
           "429": {
             "content": {
@@ -3881,40 +4508,42 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Get Job",
+        "summary": "Get a job",
         "tags": [
           "jobs"
         ]
@@ -3922,29 +4551,47 @@
     },
     "/v1/limits": {
       "get": {
+        "description": "What the calling key may do: monthly pages, concurrency, requests per minute, file and page size limits, whether `watermark: off` is allowed.",
         "operationId": "get_limits_v1_limits_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/LimitsOut",
                   "additionalProperties": true,
                   "title": "Response Get Limits V1 Limits Get",
                   "type": "object"
                 }
               }
             },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: invalid_request"
+            }
           },
           "401": {
             "content": {
@@ -3954,67 +4601,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            }
           },
           "429": {
             "content": {
@@ -4024,202 +4637,50 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Get Limits",
+        "summary": "Get the plan's limits",
         "tags": [
           "meta"
         ]
       }
     },
-    "/v1/login/start": {
-      "post": {
-        "description": "Sends a single-use link (valid 15 minutes) to the address; the account is created on the free plan if it does not exist. Keys are then made and revoked on the account page. 10 links per IP per day. `400 invalid_request` when this deployment has no outbound mail.",
-        "operationId": "login_start_v1_login_start_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginStart"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Login Start V1 Login Start Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: invalid_request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
-          }
-        },
-        "summary": "Email a sign-in link for the account page",
-        "tags": [
-          "account"
-        ]
-      }
-    },
     "/v1/preview": {
       "post": {
-        "description": "Render one page. Plain ``def``: the source read and the pool both block.",
+        "description": "A PNG of one page (or a region of it), optionally with highlight boxes, to look before editing or to show a person what changed. At most 200 KB. Free.",
         "operationId": "post_preview_v1_preview_post",
         "requestBody": {
           "content": {
@@ -4241,7 +4702,33 @@
                 }
               }
             },
-            "description": "The rendered page, at most 200 KB."
+            "description": "The rendered page, at most 200 KB.",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {
@@ -4251,7 +4738,33 @@
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -4261,27 +4774,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
+            }
           },
           "404": {
             "content": {
@@ -4291,17 +4810,33 @@
                 }
               }
             },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: not_found",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: conflict"
+            }
           },
           "413": {
             "content": {
@@ -4311,7 +4846,33 @@
                 }
               }
             },
-            "description": "error.code is one of: too_large"
+            "description": "error.code is one of: too_large",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
             "content": {
@@ -4321,7 +4882,33 @@
                 }
               }
             },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            "description": "error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "content": {
@@ -4331,7 +4918,39 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -4341,7 +4960,33 @@
                 }
               }
             },
-            "description": "error.code is one of: engine_error"
+            "description": "error.code is one of: engine_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "502": {
             "content": {
@@ -4351,7 +4996,33 @@
                 }
               }
             },
-            "description": "error.code is one of: upstream_error"
+            "description": "error.code is one of: upstream_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "504": {
             "content": {
@@ -4361,172 +5032,44 @@
                 }
               }
             },
-            "description": "error.code is one of: engine_timeout"
+            "description": "error.code is one of: engine_timeout",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
-        "summary": "Post Preview",
+        "summary": "Render a page as a PNG",
         "tags": [
           "preview"
         ]
       }
     },
-    "/v1/signup": {
-      "post": {
-        "description": "Creates a free account (200 pages a month) for an email address and returns its `sk_live_` key **once**. One address, one account: an address that already has one is refused with `409 conflict` (lost keys go through support, zp130221@163.com). 3 sign-ups per IP per day.",
-        "operationId": "signup_v1_signup_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SignupRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Signup V1 Signup Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: invalid_request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
-          }
-        },
-        "summary": "Create a free account and get its API key",
-        "tags": [
-          "account"
-        ]
-      }
-    },
     "/v1/text": {
       "post": {
-        "description": "Spans of the document, filtered and paginated. Plain ``def``:\nresolving the source and waiting on the pool both block.",
+        "description": "Every text span with its page, box, font and `span_id`, plus form fields, for the whole document or a page range. Use it to find what to edit and to scope an edit to one exact span (`scope.span_ids`). Free: reading does not bill pages.",
         "operationId": "post_text_v1_text_post",
         "requestBody": {
           "content": {
@@ -4547,7 +5090,33 @@
                 }
               }
             },
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {
@@ -4557,7 +5126,33 @@
                 }
               }
             },
-            "description": "error.code is one of: invalid_request"
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "content": {
@@ -4567,27 +5162,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
+            }
           },
           "404": {
             "content": {
@@ -4597,17 +5198,33 @@
                 }
               }
             },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: not_found",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: conflict"
+            }
           },
           "413": {
             "content": {
@@ -4617,7 +5234,33 @@
                 }
               }
             },
-            "description": "error.code is one of: too_large"
+            "description": "error.code is one of: too_large",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
             "content": {
@@ -4627,7 +5270,33 @@
                 }
               }
             },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            "description": "error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "content": {
@@ -4637,7 +5306,39 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -4647,7 +5348,33 @@
                 }
               }
             },
-            "description": "error.code is one of: engine_error"
+            "description": "error.code is one of: engine_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "502": {
             "content": {
@@ -4657,7 +5384,33 @@
                 }
               }
             },
-            "description": "error.code is one of: upstream_error"
+            "description": "error.code is one of: upstream_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "504": {
             "content": {
@@ -4667,10 +5420,36 @@
                 }
               }
             },
-            "description": "error.code is one of: engine_timeout"
+            "description": "error.code is one of: engine_timeout",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
-        "summary": "Post Text",
+        "summary": "Read the text of a PDF",
         "tags": [
           "text"
         ]
@@ -4678,29 +5457,47 @@
     },
     "/v1/usage": {
       "get": {
+        "description": "Pages used, the allowance, credit-pack pages and what remains for the current period of the calling key's account. The same numbers the account page shows.",
         "operationId": "get_usage_v1_usage_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/AccountUsageOut",
                   "additionalProperties": true,
                   "title": "Response Get Usage V1 Usage Get",
                   "type": "object"
                 }
               }
             },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: invalid_request"
+            }
           },
           "401": {
             "content": {
@@ -4710,67 +5507,33 @@
                 }
               }
             },
-            "description": "error.code is one of: unauthorized"
-          },
-          "402": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: quota_exceeded"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: forbidden_watermark_off"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: not_found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: conflict"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: too_large"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document"
+            }
           },
           "429": {
             "content": {
@@ -4780,40 +5543,42 @@
                 }
               }
             },
-            "description": "error.code is one of: rate_limited"
-          },
-          "500": {
-            "content": {
-              "application/json": {
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
                 }
               }
-            },
-            "description": "error.code is one of: engine_error"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: upstream_error"
-          },
-          "504": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: engine_timeout"
+            }
           }
         },
-        "summary": "Get Usage",
+        "summary": "Get this period's usage",
         "tags": [
           "meta"
         ]
@@ -4827,27 +5592,27 @@
   ],
   "tags": [
     {
-      "description": "Read a document: spans, ids, form fields (spec 2.1).",
-      "name": "text"
-    },
-    {
-      "description": "Render one page as a PNG, optionally highlighted (spec 2.2).",
-      "name": "preview"
-    },
-    {
-      "description": "Apply edits to a document, synchronously or as a job (spec 5).",
+      "description": "Apply edits to a document, synchronously or as a job.",
       "name": "edit"
     },
     {
-      "description": "One template, many records (spec 6).",
+      "description": "Read a document: spans, span ids, form fields.",
+      "name": "text"
+    },
+    {
+      "description": "Render one page as a PNG, optionally highlighted.",
+      "name": "preview"
+    },
+    {
+      "description": "One template, many records, one output per record.",
       "name": "batch"
     },
     {
-      "description": "Poll a job and read the 30-day audit log (spec 7).",
+      "description": "Poll a job and read the 30-day audit log.",
       "name": "jobs"
     },
     {
-      "description": "Upload, download and delete documents (spec 3).",
+      "description": "Upload, download and delete documents.",
       "name": "files"
     },
     {
@@ -4855,15 +5620,11 @@
       "name": "fonts"
     },
     {
-      "description": "Plan limits and usage for the calling key (spec 8).",
+      "description": "Plan limits, usage, and the engine's source offer.",
       "name": "meta"
     },
     {
-      "description": "Self-serve sign-up: a free account and its key.",
-      "name": "account"
-    },
-    {
-      "description": "Checkout links, and the merchant of record's webhook (spec 5).",
+      "description": "Checkout links, and the merchant of record's webhook.",
       "name": "billing"
     }
   ]

@@ -75,32 +75,6 @@ earlier call. The hosted Streamable-HTTP endpoint cannot read your disk and says
 (*remote server cannot read local paths; pass a URL*). PDFs never travel as MCP content
 blobs either way; only up to three preview PNGs of the changed pages come back inline.
 
-## The three things people actually do with it
-
-### 1. Personalise a template, once per record
-
-"Take `offer-template.pdf` and produce one per row of `hires.csv`." `pdf_batch` applies
-the same edits to the template once per record, filling `{placeholders}` from it, and
-returns a job id; `pdf_job` hands back one output document per record. The template keeps
-its own typography, because nothing is re-typeset — only the matched runs are rewritten.
-
-### 2. Redact before a document goes to a model (or to anyone else)
-
-"Strip the card numbers and the home address out of this statement, then summarise it."
-`op: "redact"` removes the text from the content stream and scrubs the image pixels under
-the rect — it is not a black rectangle drawn over text that `pdftotext` still reads back.
-The result reports `redaction.found_in`: everywhere else in the file the same string still
-occurs (metadata, XMP, outlines, attachments, form values), scrubbed too when
-`options.redact_metadata` is set.
-
-### 3. Let an agent edit a contract it was handed
-
-"Change the fee to $4,800, push the renewal date out a year, and show me what you
-changed." `pdf_find` reads the spans first when the match is ambiguous; `pdf_edit` makes
-the change and returns the per-change record — page, bbox, before/after text, the font it
-used and where that font came from, the measured collateral pixels, and a before/after
-preview image. The agent can show its work instead of asserting it.
-
 ## Tools
 
 | Tool | What it does |
@@ -176,14 +150,12 @@ What the API refuses before touching the document:
 - **Encrypted documents** need the open password (`password`); edits are not attempted
   without it.
 
-## Everything else
+## More
 
-- [Examples](https://github.com/zp130221/pdfedit-mcp/blob/main/docs/public/examples/README.md) — ten before/after pairs, each with
-  the request that produced it.
-- [Landing page and pricing](https://github.com/zp130221/pdfedit-mcp/blob/main/docs/public/index.md).
-- [Hosted MCP endpoint](https://github.com/zp130221/pdfedit-mcp/blob/main/mcp/remote-worker/README.md) — OAuth 2.1, bearer passthrough, the
-  keyless tier.
-- SDKs: [TypeScript](https://github.com/zp130221/pdfedit-mcp/blob/main/sdk/typescript/README.md), [Python](https://github.com/zp130221/pdfedit-mcp/blob/main/sdk/python/README.md).
+- [Quick start](https://api.niubai.vip/quickstart#agents) — install per client, what to say to the agent, what comes back. The canonical usage doc; this README stays short on purpose.
+- [API reference](https://api.niubai.vip/docs) — every field of `edits[]`, `options` and the response.
+- [Examples](https://api.niubai.vip/examples) — ten before/after pairs, each with the request that produced it.
+- [Repository](https://github.com/zp130221/pdfedit-mcp) — this server, the SDKs and the hosted endpoint's source.
 
 MIT. The engine behind the API is AGPL-3.0; the API serves its complete source to its
 users at `GET /source` (any key, a free test key included; the hosted MCP endpoint relays

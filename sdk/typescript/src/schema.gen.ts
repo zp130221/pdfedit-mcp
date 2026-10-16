@@ -10,7 +10,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Healthz */
+        /**
+         * Health check
+         * @description `{"status": "ok"}` when the API and its database answer. No key needed.
+         */
         get: operations["healthz_healthz_get"];
         put?: never;
         post?: never;
@@ -28,7 +31,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Engine source (AGPL-3.0)
+         * Download the engine's source (AGPL-3.0)
          * @description The complete source of the editing engine this API runs, as a tar.gz, offered under the GNU AGPL-3.0 to the API's users: send your API key (a free `sk_test_` key is enough; the hosted MCP endpoint relays this for its keyless tier). This is the licence's network-use source offer; the gateway (keys, billing, storage) is a separate program and is not included.
          */
         get: operations["get_source_source_get"];
@@ -50,8 +53,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Post Batch
-         * @description Queue a batch job. Plain ``def``: resolving the template blocks.
+         * Run the same edits over many records
+         * @description One template document, one set of edits with `{placeholders}`, many records (inline or from `records_url`): one output document per record, as a job. Answers `202` with a `job_id`; `GET /v1/jobs/{job_id}` returns one entry per record once it is done, or set `options.webhook_url`.
          */
         post: operations["post_batch_v1_batch_post"];
         delete?: never;
@@ -67,18 +70,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Checkout
-         * @description A hosted checkout link for a plan upgrade or a credit pack.
-         *
-         *     ``free`` is refused: there is nothing to buy, and a link that charges
-         *     nothing is a support ticket waiting to happen. Downgrades are not
-         *     checkouts either -- they happen in the provider's portal, and arrive
-         *     here as ``subscription.canceled``.
-         */
-        get: operations["checkout_v1_billing_checkout_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Create a checkout link
+         * @description A merchant-of-record checkout URL for a subscription plan or a credit pack, bound to the calling key's account. Open it in a browser; payment applies to the account through the webhook within a minute. The account page offers the same links without an API call.
+         */
+        post: operations["checkout_v1_billing_checkout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -95,34 +93,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Creem Webhook
-         * @description Apply one Creem event to the account it names.
-         *
-         *     ``async def`` for one reason: the raw body. The signature covers the
-         *     bytes as sent, so they have to be read before any parsing, and reading
-         *     a request body is the one thing a sync route cannot do.
+         * Merchant webhook (called by Creem)
+         * @description Receives payment, subscription, refund and dispute events from Creem, verifies the `creem-signature` HMAC and applies them to the account. Not for clients: deliveries without a valid signature are refused.
          */
         post: operations["creem_webhook_v1_billing_webhook_creem_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/checkout/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start a purchase from the website: account, key and checkout link in one step
-         * @description For the pricing page. Creates the account for the email if it does not exist (and its first key, returned once), then returns the merchant checkout URL for the plan or pack. Payment upgrades the account automatically through the merchant webhook. An existing account gets the checkout URL only -- its key is never re-issued here.
-         */
-        post: operations["checkout_start_v1_checkout_start_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -139,8 +113,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Post Edit
-         * @description Plain ``def``: the engine run belongs on a threadpool worker.
+         * Edit a PDF
+         * @description Apply one or more edits (replace, delete, redact, insert, form fill) to a document and get the edited PDF back with every change verified. Send the document as a multipart upload (`file`) with `edits` as a JSON string, or as JSON with `source.url` or a `source.file_id` from an earlier upload. Small documents answer `200` with the result at once; larger ones (over the plan's sync page limit) and any request with `options.async` true answer `202` with a `job_id` to poll at `GET /v1/jobs/{job_id}` (or set `options.webhook_url` to be called when it finishes). Add `Accept: application/pdf` to receive the edited file itself instead of JSON. Each entry in `changes` says which font was written (`font_source`, `font_used`), whether the pixel check passed (`verified`, `collateral_pixels`) and links a before/after preview; `unmatched` and `failed` list what did not happen and why.
          */
         post: operations["post_edit_v1_edit_post"];
         delete?: never;
@@ -159,8 +133,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create File
-         * @description Reserve a file id and return a presigned upload URL.
+         * Reserve an upload
+         * @description For documents you would rather not send inline: returns a `file_id` and a presigned `upload_url`. `PUT` the bytes there with the given `headers`, then pass `source.file_id` to `/v1/edit`. Uploads expire with the retention window.
          */
         post: operations["create_file_v1_files_post"];
         delete?: never;
@@ -180,8 +154,8 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Delete File
-         * @description Delete a file (owner only), cascading to its derived children.
+         * Delete a file
+         * @description Remove an uploaded or produced document before its 24-hour retention ends, together with the outputs and previews derived from it. Owner only.
          */
         delete: operations["delete_file_v1_files__file_id__delete"];
         options?: never;
@@ -196,13 +170,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get File Content */
+        /**
+         * Download a file
+         * @description The bytes of an output, preview or uploaded document. The URL comes signed (`token`) from a response; no API key is needed and the link expires.
+         */
         get: operations["get_file_content_v1_files__file_id__content_get"];
         /**
-         * Put File Content
-         * @description Stays ``async`` -- it consumes the request body, which only the event
-         *     loop can iterate -- and hands the one blocking step (writing the file and
-         *     updating the row) to a threadpool worker.
+         * Upload the file's bytes
+         * @description The second step of `POST /v1/files`: `PUT` the document to the presigned URL with the headers it returned. `204` when stored.
          */
         put: operations["put_file_content_v1_files__file_id__content_put"];
         post?: never;
@@ -220,8 +195,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Fonts
-         * @description ``{"fonts": [{name, family, styles, scripts, source}, ...]}``.
+         * List fonts
+         * @description The fonts this deployment can write with by name, for `style.font` and for reading `font_used` in a change. The document's own embedded fonts are always preferred when they carry the needed glyphs.
          */
         get: operations["get_fonts_v1_fonts_get"];
         put?: never;
@@ -240,19 +215,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Jobs
-         * @description Audit metadata for the account's jobs, newest first, no file contents.
-         *
-         *     Paged by ``cursor``: the ``job_id`` of the last row returned. Job ids are
-         *     ULIDs, so ``id < cursor`` is both the pagination predicate and a
-         *     chronological one -- no offset, and a page is stable while new jobs
-         *     arrive.
-         *
-         *     ``since`` is applied in Python rather than in SQL on purpose: SQLite
-         *     stores ``DateTime(timezone=True)`` naive (see ``db.as_utc``), so an
-         *     offset-aware bound in a WHERE clause compares wrongly. Because the rows
-         *     come back newest-first, the first row older than ``since`` ends the page
-         *     and nothing qualifying can be below it.
+         * List jobs
+         * @description The account's jobs, newest first, with status, kind, timings, pages billed and the number of changes. Filter with `since` and `status`; page with `cursor` and `limit`. Kept 30 days.
          */
         get: operations["list_jobs_v1_jobs_get"];
         put?: never;
@@ -271,8 +235,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Job
-         * @description One job: its status, its progress, and the sync body once it is done.
+         * Get a job
+         * @description The state of an async edit or batch. While it runs: `status` and `progress`. When it is done: the same body a synchronous edit returns (`changes`, `output`, `warnings`, `usage`), and `records` for a batch. Output links are valid for 24 hours.
          */
         get: operations["get_job_v1_jobs__job_id__get"];
         put?: never;
@@ -290,30 +254,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Limits */
+        /**
+         * Get the plan's limits
+         * @description What the calling key may do: monthly pages, concurrency, requests per minute, file and page size limits, whether `watermark: off` is allowed.
+         */
         get: operations["get_limits_v1_limits_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/login/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Email a sign-in link for the account page
-         * @description Sends a single-use link (valid 15 minutes) to the address; the account is created on the free plan if it does not exist. Keys are then made and revoked on the account page. 10 links per IP per day. `400 invalid_request` when this deployment has no outbound mail.
-         */
-        post: operations["login_start_v1_login_start_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -330,30 +277,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Post Preview
-         * @description Render one page. Plain ``def``: the source read and the pool both block.
+         * Render a page as a PNG
+         * @description A PNG of one page (or a region of it), optionally with highlight boxes, to look before editing or to show a person what changed. At most 200 KB. Free.
          */
         post: operations["post_preview_v1_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/signup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create a free account and get its API key
-         * @description Creates a free account (200 pages a month) for an email address and returns its `sk_live_` key **once**. One address, one account: an address that already has one is refused with `409 conflict` (lost keys go through support, zp130221@163.com). 3 sign-ups per IP per day.
-         */
-        post: operations["signup_v1_signup_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -370,9 +297,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Post Text
-         * @description Spans of the document, filtered and paginated. Plain ``def``:
-         *     resolving the source and waiting on the pool both block.
+         * Read the text of a PDF
+         * @description Every text span with its page, box, font and `span_id`, plus form fields, for the whole document or a page range. Use it to find what to edit and to scope an edit to one exact span (`scope.span_ids`). Free: reading does not bill pages.
          */
         post: operations["post_text_v1_text_post"];
         delete?: never;
@@ -388,7 +314,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Usage */
+        /**
+         * Get this period's usage
+         * @description Pages used, the allowance, credit-pack pages and what remains for the current period of the calling key's account. The same numbers the account page shows.
+         */
         get: operations["get_usage_v1_usage_get"];
         put?: never;
         post?: never;
@@ -402,6 +331,37 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AccountUsageOut */
+        AccountUsageOut: {
+            /**
+             * Credit Pages
+             * @description Credit-pack pages left; spent before the allowance, never expire.
+             */
+            credit_pages: number;
+            /**
+             * Mode
+             * @description `live` or `test`.
+             */
+            mode: string;
+            /**
+             * Overage Pages
+             * @description Recorded for information; never invoiced.
+             */
+            overage_pages: number;
+            /** Pages Allowance */
+            pages_allowance: number;
+            /** Pages Remaining */
+            pages_remaining: number;
+            /** Pages Used */
+            pages_used: number;
+            /**
+             * Period
+             * @description `yyyy-mm` for live keys, `yyyy-mm-dd` for test keys.
+             */
+            period: string;
+        } & {
+            [key: string]: unknown;
+        };
         /**
          * AtModel
          * @description Where an `insert` writes: a point, or a piece of text to hang off.
@@ -542,8 +502,31 @@ export interface components {
              * @enum {string}
              */
             watermark?: "auto" | "on" | "off";
-            /** Webhook Url */
+            /**
+             * Webhook Url
+             * @description Called with POST when the job finishes: the body is the job's result (what GET /v1/jobs/{id} returns) plus `event` (job.done, job.failed, batch.done ...) and `job_id`, signed in `X-Signature` (hex HMAC-SHA256 of the raw body with the account's webhook secret). Non-2xx answers are retried after 1, 5 and 30 minutes. https only.
+             */
             webhook_url?: string | null;
+        };
+        /**
+         * BatchRecordOut
+         * @description One record of a batch, as ``GET /v1/jobs/{id}`` reports it (spec §6).
+         */
+        BatchRecordOut: {
+            /**
+             * Changes Count
+             * @default 0
+             */
+            changes_count?: number;
+            /** Error */
+            error?: string | null;
+            /** Index */
+            index: number;
+            output?: components["schemas"]["OutputOut"] | null;
+            /** Status */
+            status: string;
+        } & {
+            [key: string]: unknown;
         };
         /**
          * BatchRequest
@@ -640,15 +623,33 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** CheckoutStart */
-        CheckoutStart: {
-            /** Email */
-            email: string;
-            /**
-             * Item
-             * @description starter | growth | scale | pack_500 | pack_5k
-             */
+        /** CheckoutOut */
+        CheckoutOut: {
+            /** Item */
             item: string;
+            /**
+             * Kind
+             * @description `plan` or `pack`.
+             */
+            kind: string;
+            /**
+             * Url
+             * @description Open in a browser to pay.
+             */
+            url: string;
+        };
+        /** CheckoutRequest */
+        CheckoutRequest: {
+            /**
+             * Pack
+             * @description pack_500 | pack_5k
+             */
+            pack?: string | null;
+            /**
+             * Plan
+             * @description starter | growth | scale
+             */
+            plan?: string | null;
         };
         /** EditModel */
         EditModel: {
@@ -793,6 +794,31 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** FileCreateOut */
+        FileCreateOut: {
+            /**
+             * Expires At
+             * @description ISO 8601; the upload slot and the file expire then.
+             */
+            expires_at?: string | null;
+            /**
+             * File Id
+             * @description Pass as `source.file_id` once the bytes are uploaded.
+             */
+            file_id: string;
+            /**
+             * Headers
+             * @description Headers the PUT must carry.
+             */
+            headers?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Upload Url
+             * @description PUT the document here.
+             */
+            upload_url: string;
+        };
         /** FontOptions */
         FontOptions: {
             /**
@@ -922,7 +948,10 @@ export interface components {
              * @enum {string}
              */
             watermark?: "auto" | "on" | "off";
-            /** Webhook Url */
+            /**
+             * Webhook Url
+             * @description Called with POST when the job finishes: the body is the job's result (what GET /v1/jobs/{id} returns) plus `event` (job.done, job.failed, batch.done ...) and `job_id`, signed in `X-Signature` (hex HMAC-SHA256 of the raw body with the account's webhook secret). Non-2xx answers are retried after 1, 5 and 30 minutes. https only.
+             */
             webhook_url?: string | null;
         };
         /** HTTPValidationError */
@@ -930,13 +959,109 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** LoginStart */
-        LoginStart: {
+        /** HealthOut */
+        HealthOut: {
             /**
-             * Email
-             * @description Where the sign-in link is sent.
+             * Status
+             * @description "ok" when the API and its database answer.
+             * @default ok
              */
-            email: string;
+            status?: string;
+        };
+        /** JobListOut */
+        JobListOut: {
+            /** Jobs */
+            jobs: components["schemas"]["JobSummaryOut"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last.
+             */
+            next_cursor?: string | null;
+        };
+        /**
+         * JobResponse
+         * @description ``GET /v1/jobs/{id}``: the sync body once the job is finished.
+         *
+         *     While the job is queued or running only ``status``, ``job_id`` and
+         *     ``progress`` are present; a finished job carries everything the sync
+         *     response carries (plus ``records`` for a batch).
+         */
+        JobResponse: {
+            /** Job Id */
+            job_id: string;
+            /**
+             * Kind
+             * @default edit
+             */
+            kind?: string;
+            /** Progress */
+            progress?: {
+                [key: string]: unknown;
+            };
+            /** Records */
+            records?: components["schemas"]["BatchRecordOut"][] | null;
+            /** Status */
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** JobSummaryOut */
+        JobSummaryOut: {
+            /**
+             * Changes
+             * @default 0
+             */
+            changes?: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Error Code */
+            error_code?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Job Id */
+            job_id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Pages Billed
+             * @default 0
+             */
+            pages_billed?: number;
+            /** Status */
+            status: string;
+            /** Warnings */
+            warnings?: string[];
+            /** Webhook State */
+            webhook_state?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** LimitsOut */
+        LimitsOut: {
+            /** Concurrency */
+            concurrency: number;
+            /** Max File Mb */
+            max_file_mb: number;
+            /** Max Pages */
+            max_pages: number;
+            /** Monthly Pages */
+            monthly_pages: number;
+            /**
+             * Overage Allowed
+             * @description Always false: every plan is prepaid.
+             */
+            overage_allowed: boolean;
+            /** Rate Per Minute */
+            rate_per_minute: number;
+            /**
+             * Sync Max Edited Pages
+             * @description Edits touching more pages than this run as a job.
+             */
+            sync_max_edited_pages: number;
+            /** Watermark Off Allowed */
+            watermark_off_allowed: boolean;
+        } & {
+            [key: string]: unknown;
         };
         /** MatchModel */
         MatchModel: {
@@ -1062,14 +1187,6 @@ export interface components {
             region?: components["schemas"]["RegionModel"] | null;
             /** Span Ids */
             span_ids?: string[] | null;
-        };
-        /** SignupRequest */
-        SignupRequest: {
-            /**
-             * Email
-             * @description Where the account is registered; the key is returned once in the response.
-             */
-            email: string;
         };
         /** SourceModel */
         SourceModel: {
@@ -1245,6 +1362,22 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** WebhookAckOut */
+        WebhookAckOut: {
+            /** Credit Pages */
+            credit_pages?: number | null;
+            /** Kind */
+            kind?: string | null;
+            /** Plan */
+            plan?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Status
+             * @description `applied` or `ignored`.
+             */
+            status: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1266,114 +1399,19 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: rate_limited */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
+                    "application/json": components["schemas"]["HealthOut"];
                 };
             };
             /** @description error.code is one of: engine_error */
             500: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1394,78 +1432,31 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/gzip": unknown;
                 };
             };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1475,33 +1466,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1513,7 +1487,10 @@ export interface operations {
     post_batch_v1_batch_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Makes a retry safe. The same key with the same body returns the first request's result (a replay, never a second charge); a duplicate that arrives while the first is still running waits for it, then answers `409 conflict` if it has not finished; the same key with a different body is refused `400`. Without the header the gateway derives a key from the request's content, so a blind retry of a timed-out POST is still safe. Keys are scoped to the account and the key's mode. */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1526,6 +1503,14 @@ export interface operations {
             /** @description Successful Response */
             202: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1535,6 +1520,14 @@ export interface operations {
             /** @description error.code is one of: invalid_request */
             400: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1544,6 +1537,14 @@ export interface operations {
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1553,6 +1554,14 @@ export interface operations {
             /** @description error.code is one of: quota_exceeded */
             402: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1562,24 +1571,14 @@ export interface operations {
             /** @description error.code is one of: forbidden_watermark_off */
             403: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1589,15 +1588,31 @@ export interface operations {
             /** @description error.code is one of: too_large */
             413: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
+            /** @description error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed */
             422: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1607,15 +1622,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1625,15 +1641,14 @@ export interface operations {
             /** @description error.code is one of: upstream_error */
             502: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1642,34 +1657,47 @@ export interface operations {
             };
         };
     };
-    checkout_v1_billing_checkout_get: {
+    checkout_v1_billing_checkout_post: {
         parameters: {
-            query?: {
-                /** @description starter | growth | scale */
-                plan?: string;
-                /** @description a credit pack name, e.g. pack_5k */
-                pack?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CheckoutOut"];
                 };
             };
             /** @description error.code is one of: invalid_request */
             400: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1679,60 +1707,14 @@ export interface operations {
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1742,15 +1724,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1760,15 +1743,14 @@ export interface operations {
             /** @description error.code is one of: upstream_error */
             502: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1789,17 +1771,19 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WebhookAckOut"];
                 };
             };
             /** @description error.code is one of: invalid_request */
             400: {
                 headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1809,230 +1793,8 @@ export interface operations {
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: rate_limited */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    checkout_start_v1_checkout_start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CheckoutStart"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: rate_limited */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2044,7 +1806,10 @@ export interface operations {
     post_edit_v1_edit_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Makes a retry safe. The same key with the same body returns the first request's result (a replay, never a second charge); a duplicate that arrives while the first is still running waits for it, then answers `409 conflict` if it has not finished; the same key with a different body is refused `400`. Without the header the gateway derives a key from the request's content, so a blind retry of a timed-out POST is still safe. Keys are scoped to the account and the key's mode. */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2080,6 +1845,14 @@ export interface operations {
             /** @description The edit ran */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2089,6 +1862,14 @@ export interface operations {
             /** @description Accepted as a job */
             202: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2098,6 +1879,14 @@ export interface operations {
             /** @description error.code is one of: invalid_request */
             400: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2107,6 +1896,14 @@ export interface operations {
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2116,6 +1913,14 @@ export interface operations {
             /** @description error.code is one of: quota_exceeded */
             402: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2125,15 +1930,14 @@ export interface operations {
             /** @description error.code is one of: forbidden_watermark_off */
             403: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2143,6 +1947,14 @@ export interface operations {
             /** @description error.code is one of: conflict */
             409: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2152,15 +1964,31 @@ export interface operations {
             /** @description error.code is one of: too_large */
             413: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
+            /** @description error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed */
             422: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2170,6 +1998,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2179,6 +2017,14 @@ export interface operations {
             /** @description error.code is one of: engine_error */
             500: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2188,6 +2034,14 @@ export interface operations {
             /** @description error.code is one of: upstream_error */
             502: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2197,6 +2051,14 @@ export interface operations {
             /** @description error.code is one of: engine_timeout */
             504: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2217,80 +2079,31 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
+                    "application/json": components["schemas"]["FileCreateOut"];
                 };
             };
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2300,33 +2113,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2349,40 +2145,29 @@ export interface operations {
             /** @description Successful Response */
             204: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2392,33 +2177,14 @@ export interface operations {
             /** @description error.code is one of: not_found */
             404: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2428,33 +2194,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2479,15 +2228,20 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/pdf": string;
+                    "image/png": string;
                 };
             };
             /** @description error.code is one of: invalid_request */
             400: {
                 headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2497,24 +2251,8 @@ export interface operations {
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2524,69 +2262,8 @@ export interface operations {
             /** @description error.code is one of: not_found */
             404: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: rate_limited */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2611,6 +2288,8 @@ export interface operations {
             /** @description Successful Response */
             204: {
                 headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -2618,6 +2297,8 @@ export interface operations {
             /** @description error.code is one of: invalid_request */
             400: {
                 headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2627,24 +2308,8 @@ export interface operations {
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2654,15 +2319,8 @@ export interface operations {
             /** @description error.code is one of: not_found */
             404: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2672,51 +2330,8 @@ export interface operations {
             /** @description error.code is one of: too_large */
             413: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: rate_limited */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2737,78 +2352,31 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["FontsResponse"];
                 };
             };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2818,33 +2386,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2872,15 +2423,31 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["JobListOut"];
                 };
             };
             /** @description error.code is one of: invalid_request */
             400: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2890,60 +2457,14 @@ export interface operations {
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2953,33 +2474,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3002,42 +2506,31 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
+                    "application/json": components["schemas"]["JobResponse"];
                 };
             };
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3047,33 +2540,14 @@ export interface operations {
             /** @description error.code is one of: not_found */
             404: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3083,33 +2557,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3130,80 +2587,31 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
+                    "application/json": components["schemas"]["LimitsOut"];
                 };
             };
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3213,167 +2621,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    login_start_v1_login_start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginStart"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: rate_limited */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3398,6 +2655,14 @@ export interface operations {
             /** @description The rendered page, at most 200 KB. */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3407,6 +2672,14 @@ export interface operations {
             /** @description error.code is one of: invalid_request */
             400: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3416,24 +2689,14 @@ export interface operations {
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3443,149 +2706,14 @@ export interface operations {
             /** @description error.code is one of: not_found */
             404: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: rate_limited */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    signup_v1_signup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SignupRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3595,15 +2723,31 @@ export interface operations {
             /** @description error.code is one of: too_large */
             413: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
+            /** @description error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed */
             422: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3613,6 +2757,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3622,6 +2776,14 @@ export interface operations {
             /** @description error.code is one of: engine_error */
             500: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3631,6 +2793,14 @@ export interface operations {
             /** @description error.code is one of: upstream_error */
             502: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3640,6 +2810,14 @@ export interface operations {
             /** @description error.code is one of: engine_timeout */
             504: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3664,6 +2842,14 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3673,6 +2859,14 @@ export interface operations {
             /** @description error.code is one of: invalid_request */
             400: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3682,24 +2876,14 @@ export interface operations {
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3709,15 +2893,14 @@ export interface operations {
             /** @description error.code is one of: not_found */
             404: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3727,15 +2910,31 @@ export interface operations {
             /** @description error.code is one of: too_large */
             413: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
+            /** @description error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed */
             422: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3745,6 +2944,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3754,6 +2963,14 @@ export interface operations {
             /** @description error.code is one of: engine_error */
             500: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3763,6 +2980,14 @@ export interface operations {
             /** @description error.code is one of: upstream_error */
             502: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3772,6 +2997,14 @@ export interface operations {
             /** @description error.code is one of: engine_timeout */
             504: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3792,80 +3025,31 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description error.code is one of: invalid_request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
+                    "application/json": components["schemas"]["AccountUsageOut"];
                 };
             };
             /** @description error.code is one of: unauthorized */
             401: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: quota_exceeded */
-            402: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: forbidden_watermark_off */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: not_found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: too_large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: document_encrypted, document_unsupported, edit_failed, signed_document */
-            422: {
-                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3875,33 +3059,16 @@ export interface operations {
             /** @description error.code is one of: rate_limited */
             429: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: upstream_error */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: engine_timeout */
-            504: {
-                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {

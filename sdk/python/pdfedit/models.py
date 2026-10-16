@@ -22,6 +22,17 @@ from enum import Enum, IntEnum
 from typing import Any, Literal
 
 
+@dataclass
+class AccountUsageOut:
+    credit_pages: int
+    mode: str
+    overage_pages: int
+    pages_allowance: int
+    pages_remaining: int
+    pages_used: int
+    period: str
+
+
 class Placement(Enum):
     inline = 'inline'
     below = 'below'
@@ -98,9 +109,16 @@ class ChangeOut:
 
 
 @dataclass
-class CheckoutStart:
-    email: str
+class CheckoutOut:
     item: str
+    kind: str
+    url: str
+
+
+@dataclass
+class CheckoutRequest:
+    pack: str | None = None
+    plan: str | None = None
 
 
 class Fit(Enum):
@@ -141,6 +159,14 @@ class FieldOut:
     type: str | None = ''
     value: str | None = None
     xref: int | None = 0
+
+
+@dataclass
+class FileCreateOut:
+    file_id: str
+    upload_url: str
+    expires_at: str | None = None
+    headers: dict[str, Any] | None = None
 
 
 class Policy(Enum):
@@ -190,8 +216,34 @@ class GatewayOptions:
 
 
 @dataclass
-class LoginStart:
-    email: str
+class HealthOut:
+    status: str | None = 'ok'
+
+
+@dataclass
+class JobSummaryOut:
+    job_id: str
+    kind: str
+    status: str
+    changes: int | None = 0
+    created_at: str | None = None
+    error_code: str | None = None
+    finished_at: str | None = None
+    pages_billed: int | None = 0
+    warnings: list[str] | None = None
+    webhook_state: str | None = None
+
+
+@dataclass
+class LimitsOut:
+    concurrency: int
+    max_file_mb: int
+    max_pages: int
+    monthly_pages: int
+    overage_allowed: bool
+    rate_per_minute: int
+    sync_max_edited_pages: int
+    watermark_off_allowed: bool
 
 
 class Mode(Enum):
@@ -268,11 +320,6 @@ class ScopeModel:
 
 
 @dataclass
-class SignupRequest:
-    email: str
-
-
-@dataclass
 class SourceModel:
     file_id: str | None = None
     password: str | None = None
@@ -339,6 +386,15 @@ class ValidationError:
 
 
 @dataclass
+class WebhookAckOut:
+    status: str
+    credit_pages: int | None = None
+    kind: str | None = None
+    plan: str | None = None
+    reason: str | None = None
+
+
+@dataclass
 class BatchOptions:
     async_: bool | None = False
     atomic: bool | None = True
@@ -360,6 +416,15 @@ class BatchOptions:
     tidy: bool | None = True
     watermark: Watermark | None = Watermark.auto
     webhook_url: str | None = None
+
+
+@dataclass
+class BatchRecordOut:
+    index: int
+    status: str
+    changes_count: int | None = 0
+    error: str | None = None
+    output: OutputOut | None = None
 
 
 @dataclass
@@ -400,6 +465,21 @@ class EditResponse:
 @dataclass
 class HTTPValidationError:
     detail: list[ValidationError] | None = None
+
+
+@dataclass
+class JobListOut:
+    jobs: list[JobSummaryOut]
+    next_cursor: str | None = None
+
+
+@dataclass
+class JobResponse:
+    job_id: str
+    status: str
+    kind: str | None = 'edit'
+    progress: dict[str, Any] | None = None
+    records: list[BatchRecordOut] | None = None
 
 
 @dataclass

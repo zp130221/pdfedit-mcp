@@ -3,7 +3,7 @@
   "name": "io.github.zp130221/pdfedit-mcp",
   "description": "Edit text inside existing PDFs: replace, delete, redact, insert, fill forms; original fonts kept.",
   "status": "active",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "repository": {
     "url": "https://github.com/zp130221/pdfedit-mcp",
     "source": "github",
@@ -15,7 +15,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@niubai/pdfedit-mcp",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
