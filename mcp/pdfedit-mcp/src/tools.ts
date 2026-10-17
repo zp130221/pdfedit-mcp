@@ -52,7 +52,7 @@ export const PdfEditInput = z.strictObject({
   output_path: z
     .string()
     .optional()
-    .describe('Where to write the edited PDF (stdio mode only). Default: `<name>.edited.pdf` next to the input.'),
+    .describe('Where to write the edited PDF (stdio mode only). Default: `<name>.edited.pdf` next to the input, or `<name>.edited.2.pdf`, `.3.pdf`, ... when that exists; an earlier result is never overwritten.'),
 });
 
 export const PdfBatchInput = z.strictObject({

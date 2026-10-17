@@ -73,7 +73,7 @@ describe('pdf_edit', () => {
     expect(text.length).toBeLessThanOrEqual(SUMMARY_MAX);
     expect(text).toContain('Replaced 3 occurrences on pages 1, 4.');
     expect(text).toContain("1 edit unmatched (did you mean 'Acme, Inc.'?).");
-    expect(text).toContain(`Output: ${defaultOutputPath(inputPath)}.`);
+    expect(text).toContain(`Output: ${join(directory, 'contract.edited.pdf')}.`);
   });
 
   it('returns the gateway response as structuredContent, unmodified', async () => {
@@ -85,7 +85,7 @@ describe('pdf_edit', () => {
   it('downloads the output next to the input, and to output_path when given', async () => {
     const tools = toolsFor(gateway);
     await callTool(tools, 'pdf_edit', { file: inputPath, edits: [{ find: 'a', replace: 'b' }] });
-    expect(await readFile(defaultOutputPath(inputPath))).toEqual(PDF_BYTES);
+    expect(await readFile(join(directory, 'contract.edited.pdf'))).toEqual(PDF_BYTES);
 
     const chosen = join(directory, 'elsewhere.pdf');
     const result = await callTool(tools, 'pdf_edit', { file: inputPath, edits: [{ find: 'a', replace: 'b' }], output_path: chosen });

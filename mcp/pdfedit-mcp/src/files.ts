@@ -7,6 +7,7 @@
  * the request body. A URL is passed straight through for the gateway to fetch
  * under its own SSRF rules, and an `f_…` id is already a stored file.
  */
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { isAbsolute, resolve } from 'node:path';
@@ -93,10 +94,22 @@ export async function resolveSource(
   return { source: { file_id: reserved.file_id, ...(password ? { password } : {}) }, localPath: path };
 }
 
-/** `contract.pdf` -> `contract.edited.pdf`, next to the input. */
-export function defaultOutputPath(inputPath: string): string {
-  const match = /^(.*?)(\.[^.\\/]+)?$/.exec(inputPath);
-  const stem = match?.[1] ?? inputPath;
+/**
+ * `contract.pdf` -> `contract.edited.pdf`, next to the input -- and never on
+ * top of an earlier result: if that name is taken, `contract.edited.2.pdf`,
+ * `.3.pdf`, ... Editing an output again keeps one stem, so
+ * `contract.edited.pdf` -> `contract.edited.2.pdf`, not `.edited.edited.pdf`.
+ * `exists` is injectable for tests; the default checks the filesystem.
+ */
+export function defaultOutputPath(inputPath: string, exists: (p: string) => boolean = existsSync): string {
+  const match = /^(.*?)(\.[^.\/]+)?$/.exec(inputPath);
+  let stem = match?.[1] ?? inputPath;
   const extension = match?.[2] ?? '.pdf';
-  return `${stem}.edited${extension}`;
+  stem = stem.replace(/\.edited(\.\d+)?$/, '');
+  const first = `${stem}.edited${extension}`;
+  if (!exists(first)) return first;
+  for (let n = 2; ; n += 1) {
+    const candidate = `${stem}.edited.${n}${extension}`;
+    if (!exists(candidate)) return candidate;
+  }
 }

@@ -111,5 +111,10 @@ describe('file argument helpers', () => {
   it('names the default output next to the input', () => {
     expect(defaultOutputPath(join('/tmp', 'contract.pdf'))).toBe(join('/tmp', 'contract.edited.pdf'));
     expect(defaultOutputPath(join('/tmp', 'noext'))).toBe(join('/tmp', 'noext.edited.pdf'));
+    const taken = new Set([join('/tmp', 'contract.edited.pdf'), join('/tmp', 'contract.edited.2.pdf')]);
+    const exists = (p: string) => taken.has(p);
+    expect(defaultOutputPath(join('/tmp', 'contract.pdf'), exists)).toBe(join('/tmp', 'contract.edited.3.pdf'));
+    expect(defaultOutputPath(join('/tmp', 'contract.edited.pdf'), exists)).toBe(join('/tmp', 'contract.edited.3.pdf'));
+    expect(defaultOutputPath(join('/tmp', 'contract.edited.2.pdf'), () => false)).toBe(join('/tmp', 'contract.edited.pdf'));
   });
 });
