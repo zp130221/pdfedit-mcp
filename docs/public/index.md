@@ -55,11 +55,10 @@ across two fonts · a header shared by three pages · a regex over matplotlib ou
 | --- | --- | --- | --- |
 | Free | $0 | 200 / month | |
 | Try-it pack | $4.90 once | 500 pages, no expiry | No subscription. |
-| Starter | $19 / month | 5,000 | |
-| Growth | $49 / month | 20,000 | May turn the watermark off on flagged documents. |
-| Scale | $149 / month | 100,000 | Same. |
-| Overage | $0.005 / page | — | Charged on top of any paid plan. |
-| Credit pack | $19 once | 5,000 pages, no expiry | For bursty use; no subscription. |
+| Starter | $9 / month | 5,000 ($0.0018 / page) | |
+| Growth | $29 / month | 25,000 ($0.0012 / page) | May turn the watermark off on flagged documents. |
+| Scale | $99 / month | 120,000 ($0.0008 / page) | Same. |
+| Credit pack | $12 once | 5,000 pages, no expiry | For bursty use; no subscription. Every plan is prepaid: nothing is billed beyond what you buy. |
 
 Watermarks: an ordinary document is never watermarked on any plan. A document that
 looks like an invoice, a contract, a sealed or official paper is marked "Edited" by
