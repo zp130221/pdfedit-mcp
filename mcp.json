@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "pdfedit": {
+      "type": "streamable-http",
+      "url": "https://pdfedit-mcp-remote.niubai-pdfedit-remote-worker.workers.dev/mcp"
+    }
+  }
+}
