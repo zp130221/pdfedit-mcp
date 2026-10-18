@@ -6,7 +6,7 @@ client over the PDF Edit API — the models are generated from the API's OpenAPI
 schema, so they are the API, and the only dependency is `httpx`.
 
 ```bash
-# not on PyPI yet (the name "pdfedit" there belongs to another project)
+# not on PyPI yet; the distribution will be published as "niubai-pdfedit" (the import stays `pdfedit`)
 pip install "git+https://github.com/zp130221/pdfedit-mcp.git#subdirectory=sdk/python"
 ```
 

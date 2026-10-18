@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pdfedit"
+name = "niubai-pdfedit"
 version = "0.1.0"
 description = "Python client for the PDF Edit API gateway"
 readme = "README.md"

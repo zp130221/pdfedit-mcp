@@ -1,6 +1,6 @@
 {
   "name": "@niubai/pdfedit-mcp",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "MCP server for the PDF Edit API: replace, redact, insert and read text in existing PDFs.",
   "keywords": [
     "mcp",

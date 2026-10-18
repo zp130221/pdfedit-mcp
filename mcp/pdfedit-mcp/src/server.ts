@@ -9,7 +9,9 @@ import type { ServerMode } from './files.js';
 import { registerTools, type ToolContext } from './tools.js';
 
 export const SERVER_NAME = 'pdfedit';
-export const SERVER_VERSION = '0.1.0';
+import { createRequire } from 'node:module';
+
+export const SERVER_VERSION: string = createRequire(import.meta.url)('../package.json').version;
 
 export interface BuildServerOptions extends Partial<ToolContext> {
   client?: GatewayClient;
