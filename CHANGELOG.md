@@ -3,6 +3,14 @@
 The MCP package (`@niubai/pdfedit-mcp`) is tagged `mcp-vX.Y.Z`; the API is versioned
 by date in the `X-API-Version` header.
 
+## 0.1.9 - 2026-10-19
+- The tool summary spells out `approx_font_used` (a look-alike font was used for the
+  changed text; check the preview) instead of passing the bare name through.
+- API side, same day: metric twins for Georgia, Segoe UI, Palatino/Book Antiqua,
+  Bookman, Century Gothic/Avant Garde, New Century Schoolbook and Arial Narrow; a glyph
+  missing from the page's embedded subset is taken from another page's subset of the
+  same font; the last-resort face is a Latin look-alike of the same class.
+
 ## 0.1.8 - 2026-10-19
 - No key needed: the hosted API serves the keyless free tier (20 pages a day per IP,
   outputs watermarked) to the npm server too, local files included.

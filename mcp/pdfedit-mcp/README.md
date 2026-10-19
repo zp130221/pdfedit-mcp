@@ -142,10 +142,14 @@ What the API refuses before touching the document:
   as collateral damage and rolls the change back; the page stays correct, the edit does
   not happen. One corpus file does this on purpose as a regression.
 - **Fonts.** A replacement is set in the document's own font where the file embeds enough
-  of it, in a metric-compatible substitute where it does not, and in an approximation as
-  a last resort. The result always says which
-  (`font_source`, `font_used`), so "it looks slightly different" is a value you can read
-  rather than a surprise.
+  of it (any page's subset of that font counts), in a metric-compatible twin where it
+  does not (Arial, Helvetica, Times New Roman, Courier New, Calibri, Cambria, Georgia,
+  Segoe UI, Palatino, Book Antiqua, Bookman, Century Gothic, Avant Garde, New Century
+  Schoolbook and Arial Narrow all have one: same widths, so the line ends where it did),
+  and in a look-alike of the same class as a last resort. The result always says which
+  (`font_source`, `font_used`), the summary spells out `approx_font_used` when the last
+  resort was taken, and `options.font.policy: "metric_only"` refuses it outright, so "it
+  looks slightly different" is a value you can read rather than a surprise.
 - **`flatten` on radio groups and comboboxes** depends on the appearance the file carries; where it
   declines, the field is left live and `flatten_skipped` is warned instead of failing.
 - **Encrypted documents** need the open password (`password`); edits are not attempted

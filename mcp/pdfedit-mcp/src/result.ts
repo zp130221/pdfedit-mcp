@@ -55,6 +55,25 @@ function clamp(text: string): string {
 }
 
 /**
+ * Warnings a model should act on, spelled out; the rest pass through by name. The
+ * approximate-font case is the one a reader would otherwise miss: the document is
+ * valid, but the changed text is set in a look-alike, so the preview is the thing to
+ * check -- and the way to avoid it (the document's own font, or a metric twin) is
+ * something the person, not the agent, decides.
+ */
+export const WARNING_HINTS: Record<string, string> = {
+  approx_font_used:
+    'approx_font_used (the original font was not available for the changed text, so a look-alike was used; check the preview, and see font_used in changes[])',
+  style_merged: 'style_merged (the matched text spanned two styles; the first one was kept)',
+  sealed_document: 'sealed_document (the document is signed or certified; the edit is on an unsigned copy)',
+};
+
+export function explainWarning(warning: unknown): string {
+  const name = String(warning);
+  return WARNING_HINTS[name] ?? name;
+}
+
+/**
  * The fixed summary format:
  * `Replaced 3 occurrences on pages 1, 4. 1 edit unmatched (did you mean 'Acme, Inc.'?). Output: ./contract.edited.pdf`
  */
@@ -95,7 +114,7 @@ export function summarize(response: any, outputLabel?: string): string {
     sentences.push(`${failed.length} edit${failed.length === 1 ? '' : 's'} rolled back${reason}.`);
   }
   const warnings: any[] = Array.isArray(response?.warnings) ? response.warnings : [];
-  if (warnings.length > 0) sentences.push(`Warnings: ${warnings.join(', ')}.`);
+  if (warnings.length > 0) sentences.push(`Warnings: ${warnings.map(explainWarning).join(', ')}.`);
   if (outputLabel) sentences.push(`Output: ${outputLabel}.`);
 
   return clamp(sentences.join(' '));

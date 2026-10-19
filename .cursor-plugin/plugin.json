@@ -1,7 +1,7 @@
 {
   "name": "pdfedit",
   "displayName": "PDF Edit",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Edit text inside existing PDFs: replace, delete, redact, insert, fill forms. Original fonts and layout kept; every change verified before it is returned. No key needed to try: 20 pages a day per IP.",
   "author": {
     "name": "niubai",
