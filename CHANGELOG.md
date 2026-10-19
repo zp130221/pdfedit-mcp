@@ -4,6 +4,9 @@ The MCP package (`@niubai/pdfedit-mcp`) is tagged `mcp-vX.Y.Z`; the API is versi
 by date in the `X-API-Version` header.
 
 ## 0.1.9 - 2026-10-19
+- Agent skill `skills/pdfedit` (`npx skills add zp130221/pdfedit-mcp`): the API over
+  curl or a stdlib Python script, for agents without Node. The repository is also a
+  Claude Code plugin marketplace (`/plugin marketplace add zp130221/pdfedit-mcp`).
 - The tool summary spells out `approx_font_used` (a look-alike font was used for the
   changed text; check the preview) instead of passing the bare name through.
 - API side, same day: metric twins for Georgia, Segoe UI, Palatino/Book Antiqua,

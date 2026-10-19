@@ -9,8 +9,8 @@ returned.
 
 ## Try it in 30 seconds, no key
 
-The server works with no key at all: 20 pages a day per IP, outputs watermarked
-`TEST`, local files included. Nothing to sign up for:
+The server works with no key at all: 20 pages a day per IP, outputs marked
+`SAMPLE`, local files included. Nothing to sign up for:
 
 **Claude Code**
 
@@ -31,9 +31,27 @@ ordinary documents) takes one email at <https://api.niubai.vip>; set it as
 `PDFEDIT_API_KEY`. Web clients that cannot run a local server (claude.ai) use the hosted
 endpoint `https://pdfedit-mcp-remote.niubai-pdfedit-remote-worker.workers.dev/mcp` with PDF URLs.
 
+## No Node? Install the skill
+
+The same API as an [Agent Skill](skills/pdfedit/SKILL.md): a SKILL.md plus a
+stdlib-only Python script, for Claude Code, Codex, Cursor, Gemini CLI and any other
+agent that runs shell commands. Nothing to install but the skill itself:
+
+```bash
+npx skills add zp130221/pdfedit-mcp
+```
+
+Claude Code can also take the whole thing as a plugin, MCP server and skill together:
+
+```text
+/plugin marketplace add zp130221/pdfedit-mcp
+/plugin install pdfedit@pdfedit
+```
+
 | What | Where |
 |---|---|
 | MCP server (`npx -y @niubai/pdfedit-mcp`) for Claude Code, Cursor, Claude Desktop | [`mcp/pdfedit-mcp/`](mcp/pdfedit-mcp/README.md) |
+| Agent skill (`npx skills add zp130221/pdfedit-mcp`), no Node needed | [`skills/pdfedit/`](skills/pdfedit/SKILL.md) |
 | TypeScript SDK (`@niubai/pdfedit`) | [`sdk/typescript/`](sdk/typescript/README.md) |
 | Python SDK | [`sdk/python/`](sdk/python/README.md) |
 | OpenAPI document the SDKs and tool schemas are generated from | [`openapi/openapi.json`](openapi/openapi.json) |

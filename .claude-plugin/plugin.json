@@ -1,0 +1,28 @@
+{
+  "name": "pdfedit",
+  "displayName": "PDF Edit",
+  "version": "0.1.9",
+  "description": "Edit text inside existing PDFs: replace, delete, redact, insert, fill forms. Original fonts and layout kept; every change verified before it is returned. No key needed to try: 20 pages a day per IP.",
+  "author": {
+    "name": "niubai",
+    "email": "zp130221@163.com",
+    "url": "https://api.niubai.vip"
+  },
+  "homepage": "https://api.niubai.vip/quickstart",
+  "repository": "https://github.com/zp130221/pdfedit-mcp",
+  "license": "MIT",
+  "keywords": [
+    "pdf",
+    "pdf-editor",
+    "pdf-editing",
+    "redaction",
+    "documents",
+    "mcp",
+    "mcp-server"
+  ],
+  "icon": "./assets/logo.png",
+  "documentationUrl": "https://api.niubai.vip/quickstart",
+  "supportUrl": "https://github.com/zp130221/pdfedit-mcp/issues",
+  "privacyPolicyUrl": "https://api.niubai.vip/legal#privacy",
+  "termsOfServiceUrl": "https://api.niubai.vip/legal#terms"
+}
