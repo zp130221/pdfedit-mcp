@@ -8,15 +8,15 @@ Each pair is one page of one document, cropped to the edited text plus context,
 rendered from the input bytes and from the result's output bytes at the same
 zoom over the same clip: the only difference between the two images is the edit.
 
-## 01. Replace a fee in a Word-produced agreement
+## 01. Replace a fee in an agreement
 
-One call, no template: the amount changes, the embedded font and the rest of the line stay exactly as Word wrote them.
+One call, no template: the amount changes, the embedded font and the rest of the line stay exactly as the generator wrote them.
 
 | before | after |
 | --- | --- |
 | ![before](./01-replace-before.png) | ![after](./01-replace-after.png) |
 
-Source: Microsoft Word document, page 1.
+Source: the agreement (Chromium print-to-PDF), page 1.
 
 ```json
 {
@@ -39,7 +39,7 @@ Engine reported: `status: done`, 1 change(s), `pages_billed: 1`.
 | --- | --- |
 | ![before](./02-delete-before.png) | ![after](./02-delete-after.png) |
 
-Source: Chromium print-to-PDF document, page 1.
+Source: the quotation (Chromium print-to-PDF), page 1.
 
 ```json
 {
@@ -65,7 +65,7 @@ Engine reported: `status: done`, 1 change(s), `pages_billed: 1`.
 | --- | --- |
 | ![before](./03-style-before.png) | ![after](./03-style-after.png) |
 
-Source: the same document, page 1.
+Source: the agreement (Chromium print-to-PDF), page 1.
 
 ```json
 {
@@ -91,7 +91,7 @@ The text is removed from the content stream and the pixels under the box are scr
 | --- | --- |
 | ![before](./04-redact-before.png) | ![after](./04-redact-after.png) |
 
-Source: the same document, page 1.
+Source: the quotation (Chromium print-to-PDF), page 1.
 
 ```json
 {
@@ -117,7 +117,7 @@ Engine reported: `status: done`, 1 change(s), `pages_billed: 1`.
 | --- | --- |
 | ![before](./05-insert-before.png) | ![after](./05-insert-after.png) |
 
-Source: the same document, page 1.
+Source: the agreement (Chromium print-to-PDF), page 1.
 
 ```json
 {
@@ -127,7 +127,7 @@ Source: the same document, page 1.
       "text": "Late payment accrues 1.5% interest per month.",
       "at": {
         "page": 1,
-        "x": 90,
+        "x": 68,
         "y": 240
       }
     }
@@ -213,7 +213,7 @@ Source: a synthetic test fixture, page 2.
 }
 ```
 
-Engine reported: `status: done`, 1 change(s), `pages_billed: 1`.
+Engine reported: `status: done`, 1 change(s), `pages_billed: 1`, warnings `['style_merged']`.
 
 ## 09. A header shared by three pages, edited on one
 
@@ -243,7 +243,7 @@ Engine reported: `status: done`, 1 change(s), `pages_billed: 1`, notes `['unshar
 
 ## 10. A regex over a matplotlib-rendered invoice number
 
-`match.mode: regex` (linear time, no lookaround) against text a plotting library emitted one glyph at a time.
+`match.mode: regex` (RE2: linear time, no lookaround) against text a plotting library emitted one glyph at a time.
 
 | before | after |
 | --- | --- |
