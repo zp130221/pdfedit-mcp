@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security report
+    url: https://github.com/zp130221/pdfedit-mcp/blob/main/SECURITY.md
+    about: Please report vulnerabilities privately, not as an issue.
+  - name: Documentation
+    url: https://api.niubai.vip/quickstart
+    about: Quick start, error table, webhooks.

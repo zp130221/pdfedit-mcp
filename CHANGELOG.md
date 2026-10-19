@@ -1,0 +1,25 @@
+# Changelog
+
+The MCP package (`@niubai/pdfedit-mcp`) is tagged `mcp-vX.Y.Z`; the API is versioned
+by date in the `X-API-Version` header.
+
+## 0.1.8 - 2026-10-19
+- No key needed: the hosted API serves the keyless free tier (20 pages a day per IP,
+  outputs watermarked) to the npm server too, local files included.
+- Install buttons and docs lead with `npx -y @niubai/pdfedit-mcp`.
+
+## 0.1.7 - 2026-10-18
+- The server reports its real package version (generated at build time).
+
+## 0.1.6 - 2026-10-18
+- Version read from package.json (broke when bundled; superseded by 0.1.7).
+
+## 0.1.5 - 2026-10-17
+- Output files never overwrite: `x.edited.pdf`, then `x.edited.2.pdf`, ...
+- npm keywords, badges, trimmed README.
+
+## 0.1.4 - 2026-10-16
+- README with absolute links; registry listing.
+
+## 0.1.0 - 2026-10-15
+- First release: pdf_edit, pdf_find, pdf_preview, pdf_batch, pdf_job.
