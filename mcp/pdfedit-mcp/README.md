@@ -12,26 +12,26 @@ same file, with the words you named changed, and a before/after picture of every
 
 ## Try it in 30 seconds, no key
 
-The hosted endpoint answers anonymous callers on a free tier (20 pages a day per IP,
-outputs watermarked `TEST`). Nothing to install:
+Without `PDFEDIT_API_KEY` the server runs on the keyless free tier: 20 pages a day
+per IP, outputs watermarked `TEST`, local files included.
 
 **Claude Code**
 
 ```bash
-claude mcp add --transport http pdfedit https://pdfedit-mcp-remote.niubai-pdfedit-remote-worker.workers.dev/mcp
+claude mcp add pdfedit -- npx -y @niubai/pdfedit-mcp
 ```
 
-**Cursor / VS Code / Claude Desktop (remote server)** — add this server, or use the
-buttons above:
+**Cursor / VS Code / Claude Desktop** — this server entry (or the buttons on the
+[repository page](https://github.com/zp130221/pdfedit-mcp)):
 
 ```json
-{ "pdfedit": { "url": "https://pdfedit-mcp-remote.niubai-pdfedit-remote-worker.workers.dev/mcp" } }
+{ "pdfedit": { "command": "npx", "args": ["-y", "@niubai/pdfedit-mcp"] } }
 ```
 
-Then ask your agent: *"In https://example.com/contract.pdf replace 'Acme Ltd' with
-'Acme GmbH' and redact the IBAN."* It returns the edited PDF link and a before/after
-picture of every change. A free API key (200 pages a month, no watermark on ordinary
-documents) takes one email at <https://api.niubai.vip>.
+Then ask your agent: *"In ./contract.pdf replace 'Acme Ltd' with 'Acme GmbH' and
+redact the IBAN."* The edited PDF is written next to the original and a before/after
+picture of every change comes back. A free API key (200 pages a month, no watermark on
+ordinary documents) takes one email at <https://api.niubai.vip>.
 
 ## Install
 
@@ -63,8 +63,9 @@ cursor://anysphere.cursor-deeplink/mcp/install?name=pdfedit&config=eyJjb21tYW5kI
 }
 ```
 
-No key? The [hosted endpoint](https://github.com/zp130221/pdfedit-mcp/blob/main/mcp/remote-worker/README.md) answers anonymous callers on a
-keyless free tier — 20 pages/day per IP, outputs watermarked `TEST`.
+No key? Leave `env` out: the keyless free tier is 20 pages/day per IP, outputs
+watermarked `TEST`. Web clients that cannot run a local server (claude.ai) can add the
+[hosted endpoint](https://github.com/zp130221/pdfedit-mcp/blob/main/mcp/remote-worker/README.md) instead; it takes PDF URLs only.
 
 ### Local files versus URLs
 

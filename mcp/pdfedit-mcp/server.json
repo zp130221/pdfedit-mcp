@@ -3,7 +3,7 @@
   "name": "io.github.zp130221/pdfedit-mcp",
   "description": "Edit text inside existing PDFs: replace, delete, redact, insert, fill forms; original fonts kept.",
   "status": "active",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "repository": {
     "url": "https://github.com/zp130221/pdfedit-mcp",
     "source": "github",
@@ -15,7 +15,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@niubai/pdfedit-mcp",
-      "version": "0.1.7",
+      "version": "0.1.8",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
@@ -23,7 +23,7 @@
       "environmentVariables": [
         {
           "name": "PDFEDIT_API_KEY",
-          "description": "API key for the PDF Edit API. Without one the server can still reach a gateway you run yourself; the hosted endpoint has a keyless free tier.",
+          "description": "API key for the PDF Edit API. Optional: without one the hosted API serves the keyless free tier (20 pages a day per IP, outputs watermarked TEST).",
           "isRequired": false,
           "isSecret": true
         },
