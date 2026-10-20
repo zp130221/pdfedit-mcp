@@ -40,6 +40,9 @@ export class FakeGateway {
   readonly uploads = new Map<string, Buffer>();
   private server?: Server;
   private polls = 0;
+  private fileSeq = 0;
+  /** File ids the gateway no longer has: an edit naming one answers `not_found`. */
+  readonly forgotten = new Set<string>();
   baseUrl = '';
 
   constructor(private readonly options: FakeGatewayOptions = {}) {}
@@ -191,9 +194,10 @@ export class FakeGateway {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/files') {
+      const fileId = `f_in${++this.fileSeq}`;
       json(200, {
-        file_id: 'f_in1',
-        upload_url: `${this.baseUrl}/upload/f_in1`,
+        file_id: fileId,
+        upload_url: `${this.baseUrl}/upload/${fileId}`,
         headers: { 'x-amz-meta-account': 'acct_1' },
         expires_at: '2026-10-15T00:00:00+00:00',
       });
@@ -205,6 +209,11 @@ export class FakeGateway {
       return;
     }
     if (req.method === 'POST' && url.pathname === '/v1/edit') {
+      const named = String(body?.source?.file_id ?? '');
+      if (this.forgotten.has(named)) {
+        json(404, { error: { code: 'not_found', message: 'File not found', hint: 'upload it again' } });
+        return;
+      }
       if (this.options.asyncEdit) json(202, { job_id: 'job_edit_1', status: 'queued' });
       else json(200, this.editResponse());
       return;

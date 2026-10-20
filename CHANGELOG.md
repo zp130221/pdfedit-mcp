@@ -3,6 +3,17 @@
 The MCP package (`@niubai/pdfedit-mcp`) is tagged `mcp-vX.Y.Z`; the API is versioned
 by date in the `X-API-Version` header.
 
+## 0.1.10 - 2026-10-20
+- A local file is uploaded once per session: later calls that name the same unchanged
+  path reuse the stored file (an hour, or until the gateway reports it gone), instead of
+  uploading it again on every call.
+- API side, same day, from the first outside customer's document: a `find` typed from
+  the page matches across the space extraction synthesises at a CJK/Latin boundary
+  ("2022级" finds "2022 级"); a match that straddles two fonts is rewritten only where
+  it changes, so the untouched half keeps its font; a line whose rewritten segment
+  comes back in a different extraction order no longer fails verification; an
+  inserted-but-unused font no longer bloats the output.
+
 ## 0.1.9 - 2026-10-19
 - Agent skill `skills/pdfedit` (`npx skills add zp130221/pdfedit-mcp`): the API over
   curl or a stdlib Python script, for agents without Node. The repository is also a

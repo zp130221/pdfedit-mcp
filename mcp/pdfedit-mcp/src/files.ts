@@ -8,7 +8,7 @@
  * under its own SSRF rules, and an `f_…` id is already a stored file.
  */
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { isAbsolute, resolve } from 'node:path';
 
@@ -26,6 +26,40 @@ export interface ResolvedSource {
   source: { file_id?: string; url?: string; password?: string };
   /** The local path the source came from, when it was one (stdio uploads). */
   localPath?: string;
+  /** The file id came from an earlier upload of the same bytes (see `withSource`). */
+  reused?: boolean;
+}
+
+/**
+ * How long an upload is reused for. The gateway keeps a retained input for 24 h
+ * (`retention_hours`); an hour leaves a wide margin, and a stale id is caught
+ * anyway: the gateway answers `not_found` and `withSource` uploads again.
+ */
+export const UPLOAD_REUSE_MS = 60 * 60 * 1000;
+
+/**
+ * Uploads this process made, per client: `<path>|<size>|<mtime>` -> file id.
+ *
+ * An agent session edits the same document many times over -- one customer's
+ * 32 calls re-uploaded a 600 KB file 62 times in 17 minutes -- and every call
+ * that names the same unchanged path can name the same stored file instead.
+ */
+const uploaded = new WeakMap<GatewayClient, Map<string, { fileId: string; until: number }>>();
+
+function uploadsOf(client: GatewayClient): Map<string, { fileId: string; until: number }> {
+  let map = uploaded.get(client);
+  if (!map) {
+    map = new Map();
+    uploaded.set(client, map);
+  }
+  return map;
+}
+
+/** Drop a reused id the gateway no longer knows (or that an edit without `retain` deleted). */
+export function forgetUpload(client: GatewayClient, fileId: string): void {
+  const map = uploaded.get(client);
+  if (!map) return;
+  for (const [key, entry] of map) if (entry.fileId === fileId) map.delete(key);
 }
 
 /** `f_…` — the gateway's file id prefix (`storage.presign_put`). */
@@ -62,9 +96,9 @@ export function expandPath(file: string): string {
  */
 export async function resolveSource(
   file: string,
-  options: { client: GatewayClient; mode: ServerMode; password?: string },
+  options: { client: GatewayClient; mode: ServerMode; password?: string; reuse?: boolean },
 ): Promise<ResolvedSource> {
-  const { client, mode, password } = options;
+  const { client, mode, password, reuse = true } = options;
 
   if (isHttpUrl(file)) {
     return { source: { url: file, ...(password ? { password } : {}) } };
@@ -89,9 +123,41 @@ export async function resolveSource(
     );
   }
 
+  const info = await stat(path);
+  const key = `${path}|${info.size}|${info.mtimeMs}`;
+  const known = uploadsOf(client).get(key);
+  if (reuse && known && known.until > Date.now()) {
+    return { source: { file_id: known.fileId, ...(password ? { password } : {}) }, localPath: path, reused: true };
+  }
+
   const reserved = await client.createFile();
   await client.putUpload(reserved.upload_url, bytes, reserved.headers ?? {});
+  if (reuse) uploadsOf(client).set(key, { fileId: reserved.file_id, until: Date.now() + UPLOAD_REUSE_MS });
+  else uploadsOf(client).delete(key);
   return { source: { file_id: reserved.file_id, ...(password ? { password } : {}) }, localPath: path };
+}
+
+/**
+ * `resolveSource`, then `run` with the result -- once more with a fresh upload
+ * if the gateway no longer has a REUSED file id (`not_found`: retention ran
+ * out, or an earlier call edited it with `retain: false`). A `not_found` for
+ * anything else -- a stale `f_…` id the caller passed, a URL -- is the caller's.
+ */
+export async function withSource<T>(
+  file: string,
+  options: { client: GatewayClient; mode: ServerMode; password?: string; reuse?: boolean },
+  run: (resolved: ResolvedSource) => Promise<T>,
+): Promise<T> {
+  const resolved = await resolveSource(file, options);
+  try {
+    return await run(resolved);
+  } catch (error) {
+    if (resolved.reused && error instanceof GatewayError && error.code === 'not_found' && resolved.source.file_id) {
+      forgetUpload(options.client, resolved.source.file_id);
+      return run(await resolveSource(file, options));
+    }
+    throw error;
+  }
 }
 
 /**

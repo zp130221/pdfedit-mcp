@@ -12,7 +12,7 @@ import * as z from 'zod';
 import type { CallToolResult, McpServer } from '@modelcontextprotocol/server';
 
 import { GatewayClient, GatewayError } from './client.js';
-import { defaultOutputPath, resolveSource, type ServerMode } from './files.js';
+import { defaultOutputPath, withSource, type ServerMode } from './files.js';
 import { downloadOutput, fetchPreviews, pollJob, queuedText, summarize } from './result.js';
 import {
   BatchOptions,
@@ -162,26 +162,30 @@ export function registerTools(server: McpServer, context: ToolContext): void {
     },
     async (args) => {
       try {
-        const { source, localPath } = await resolveSource(args.file, {
-          client: context.client,
-          mode: context.mode,
-          password: args.password,
-        });
-        const body: Record<string, unknown> = { source, edits: args.edits };
-        if (args.options) body.options = args.options;
-        const { status, body: first } = await context.client.edit(body);
-        if (status === 202) {
-          const jobId = String(first?.job_id ?? '');
-          const finished = await pollJob(context.client, jobId, {
-            timeoutMs: context.pollTimeoutMs,
-            intervalMs: context.pollIntervalMs,
-          });
-          if (!finished) {
-            return { content: [{ type: 'text', text: queuedText(jobId) }], structuredContent: first };
-          }
-          return await shapeEditResponse(finished, context, { outputPath: args.output_path, localPath });
-        }
-        return await shapeEditResponse(first, context, { outputPath: args.output_path, localPath });
+        // `retain: false` has the gateway delete the input after this edit, so
+        // the upload is not kept for a later call.
+        const reuse = (args.options as { retain?: boolean } | undefined)?.retain !== false;
+        return await withSource(
+          args.file,
+          { client: context.client, mode: context.mode, password: args.password, reuse },
+          async ({ source, localPath }) => {
+            const body: Record<string, unknown> = { source, edits: args.edits };
+            if (args.options) body.options = args.options;
+            const { status, body: first } = await context.client.edit(body);
+            if (status === 202) {
+              const jobId = String(first?.job_id ?? '');
+              const finished = await pollJob(context.client, jobId, {
+                timeoutMs: context.pollTimeoutMs,
+                intervalMs: context.pollIntervalMs,
+              });
+              if (!finished) {
+                return { content: [{ type: 'text', text: queuedText(jobId) }], structuredContent: first };
+              }
+              return await shapeEditResponse(finished, context, { outputPath: args.output_path, localPath });
+            }
+            return await shapeEditResponse(first, context, { outputPath: args.output_path, localPath });
+          },
+        );
       } catch (error) {
         return errorResult(error);
       }
@@ -198,26 +202,28 @@ export function registerTools(server: McpServer, context: ToolContext): void {
     },
     async (args) => {
       try {
-        const { source } = await resolveSource(args.file, {
-          client: context.client,
-          mode: context.mode,
-          password: args.password,
-        });
-        const body: Record<string, unknown> = { source, edits: args.edits };
-        if (args.records) body.records = args.records;
-        if (args.records_url) body.records_url = args.records_url;
-        if (args.options) body.options = args.options;
-        const { body: queued } = await context.client.batch(body);
-        const jobId = String(queued?.job_id ?? '');
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Batch queued as job ${jobId}; call pdf_job with job_id '${jobId}' for the per-record results.`,
-            },
-          ],
-          structuredContent: queued,
-        };
+        const reuse = (args.options as { retain?: boolean } | undefined)?.retain !== false;
+        return await withSource(
+          args.file,
+          { client: context.client, mode: context.mode, password: args.password, reuse },
+          async ({ source }) => {
+            const body: Record<string, unknown> = { source, edits: args.edits };
+            if (args.records) body.records = args.records;
+            if (args.records_url) body.records_url = args.records_url;
+            if (args.options) body.options = args.options;
+            const { body: queued } = await context.client.batch(body);
+            const jobId = String(queued?.job_id ?? '');
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Batch queued as job ${jobId}; call pdf_job with job_id '${jobId}' for the per-record results.`,
+                },
+              ],
+              structuredContent: queued,
+            };
+          },
+        );
       } catch (error) {
         return errorResult(error);
       }
@@ -235,8 +241,9 @@ export function registerTools(server: McpServer, context: ToolContext): void {
     async (args) => {
       try {
         const { file, password, ...rest } = args;
-        const { source } = await resolveSource(file, { client: context.client, mode: context.mode, password });
-        const { body } = await context.client.text({ source, ...rest });
+        const { body } = await withSource(file, { client: context.client, mode: context.mode, password }, ({ source }) =>
+          context.client.text({ source, ...rest }),
+        );
         const spans: any[] = Array.isArray(body?.spans) ? body.spans : [];
         const pages = [...new Set(spans.map((span) => span?.page).filter((page) => typeof page === 'number'))];
         const more = body?.next_cursor ? ' More results: pass next_cursor back as cursor.' : '';
@@ -268,8 +275,11 @@ export function registerTools(server: McpServer, context: ToolContext): void {
     async (args) => {
       try {
         const { file, password, ...rest } = args;
-        const { source } = await resolveSource(file, { client: context.client, mode: context.mode, password });
-        const { bytes, contentType } = await context.client.preview({ source, ...rest });
+        const { bytes, contentType } = await withSource(
+          file,
+          { client: context.client, mode: context.mode, password },
+          ({ source }) => context.client.preview({ source, ...rest }),
+        );
         return {
           content: [
             {

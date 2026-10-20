@@ -277,3 +277,66 @@ describe('tool metadata', () => {
     expect(DESCRIPTIONS.pdf_preview).toContain('PNG');
   });
 });
+
+
+describe('upload reuse', () => {
+  beforeEach(async () => {
+    gateway = new FakeGateway();
+    await gateway.start();
+    inputPath = await fixtureInput();
+  });
+  afterEach(() => gateway.stop());
+
+  it('uploads an unchanged local file once and names the same file id on later calls', async () => {
+    const tools = toolsFor(gateway);
+    const edits = [{ find: 'Acme Inc.', replace: 'Acme, Inc.' }];
+    await callTool(tools, 'pdf_edit', { file: inputPath, edits });
+    await callTool(tools, 'pdf_edit', { file: inputPath, edits });
+    await callTool(tools, 'pdf_find', { file: inputPath, query: 'Acme' });
+
+    expect(gateway.to('/v1/files')).toHaveLength(1);
+    expect(gateway.to('/v1/edit').map((r) => r.body.source.file_id)).toEqual(['f_in1', 'f_in1']);
+    expect(gateway.to('/v1/text')[0]!.body.source.file_id).toBe('f_in1');
+  });
+
+  it('uploads again once the file changed on disk', async () => {
+    const tools = toolsFor(gateway);
+    const edits = [{ find: 'a', replace: 'b' }];
+    await callTool(tools, 'pdf_edit', { file: inputPath, edits });
+    await writeFile(inputPath, Buffer.concat([PDF_BYTES, Buffer.from('\n%changed\n')]));
+    await callTool(tools, 'pdf_edit', { file: inputPath, edits });
+
+    expect(gateway.to('/v1/files')).toHaveLength(2);
+    expect(gateway.to('/v1/edit').map((r) => r.body.source.file_id)).toEqual(['f_in1', 'f_in2']);
+  });
+
+  it('does not keep an upload the gateway deletes after an edit with retain: false', async () => {
+    const tools = toolsFor(gateway);
+    const edits = [{ find: 'a', replace: 'b' }];
+    await callTool(tools, 'pdf_edit', { file: inputPath, edits, options: { retain: false } });
+    await callTool(tools, 'pdf_edit', { file: inputPath, edits });
+
+    expect(gateway.to('/v1/files')).toHaveLength(2);
+  });
+
+  it('uploads again when the gateway no longer has the reused file', async () => {
+    const tools = toolsFor(gateway);
+    const edits = [{ find: 'a', replace: 'b' }];
+    await callTool(tools, 'pdf_edit', { file: inputPath, edits });
+    gateway.forgotten.add('f_in1');
+    const result = await callTool(tools, 'pdf_edit', { file: inputPath, edits });
+
+    expect(result.isError).toBeFalsy();
+    expect(gateway.to('/v1/files')).toHaveLength(2);
+    expect(gateway.to('/v1/edit').map((r) => r.body.source.file_id)).toEqual(['f_in1', 'f_in1', 'f_in2']);
+  });
+
+  it('leaves a not_found for a file id the caller passed to the caller', async () => {
+    const tools = toolsFor(gateway);
+    gateway.forgotten.add('f_stale');
+    const result = await callTool(tools, 'pdf_edit', { file: 'f_stale', edits: [{ find: 'a', replace: 'b' }] });
+
+    expect(result.isError).toBe(true);
+    expect(gateway.to('/v1/files')).toHaveLength(0);
+  });
+});
