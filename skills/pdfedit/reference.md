@@ -15,6 +15,7 @@ Base URL `https://api.niubai.vip`. Every request may carry `Authorization: Beare
 | `GET /v1/files/{file_id}/content?token=…` | Download an output; `output.url` in a result is this link, valid 24 hours. |
 | `GET /v1/usage` | Pages used and remaining this period. |
 | `GET /v1/fonts` | Fonts `style.font` may name. |
+| `POST /v1/feedback` | `{"rating": 1-5, "message", "request_id"?, "email"?}` → `202 {"received": true}`. No key needed; the owner reads every message. |
 
 ## Edit object
 

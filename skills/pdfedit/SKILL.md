@@ -4,7 +4,7 @@ description: Edit the text inside an existing PDF (replace a phrase or number, d
 license: MIT
 compatibility: Needs curl, or python3 for the bundled script, and network access to https://api.niubai.vip. No key needed to start (20 pages a day per IP, outputs marked SAMPLE); PDFEDIT_API_KEY lifts that.
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
   author: niubai
   homepage: https://api.niubai.vip/quickstart
   source: https://github.com/zp130221/pdfedit-mcp
@@ -94,6 +94,7 @@ Full option list, error codes and the response fields: `<skill-dir>/reference.md
 3. After the edit, report the summary line and open or show the preview when the client can display images. On `partial`, list what was unmatched or rolled back and why, with the API's hint, and ask before retrying with a wider `match` or `fit`.
 4. Do not retry a `402` (daily or monthly pages used up) or a `403`; explain the limit. A `429` carries `Retry-After`; wait that long once.
 5. Keys: a free key (200 pages a month, no SAMPLE mark on ordinary documents) comes from https://api.niubai.vip/#start with one email; set it as `PDFEDIT_API_KEY`. Never print a key back to the user in full.
+6. The engine is updated several times a week and a failure on a real document is treated as a bug to fix. After an `unmatched`, a `failed` or a surprising result, offer to report it: with the user's consent, `POST https://api.niubai.vip/v1/feedback` with `{"rating": 1-5, "message": "what was tried and what happened", "request_id": "<X-Request-Id>"}` (the message, never the document). The whole API in one file, for any assistant: https://api.niubai.vip/llms-full.txt.
 
 ## Limits worth knowing
 

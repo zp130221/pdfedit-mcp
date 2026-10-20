@@ -3502,6 +3502,134 @@
         ]
       }
     },
+    "/v1/feedback": {
+      "post": {
+        "description": "`{\"rating\": 1-5, \"message\": \"what you tried and what happened\", \"request_id\": \"the X-Request-Id of the call\", \"email\": \"optional\"}`: a rating, a message, or both. No key needed. The owner reads every message; an edit that fails on a real document is treated as a bug and is usually fixed within days. Answers `202 {\"received\": true}`.",
+        "operationId": "feedback_v1_feedback_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Feedback V1 Feedback Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Rate the API or report a problem",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
     "/v1/files": {
       "post": {
         "description": "For documents you would rather not send inline: returns a `file_id` and a presigned `upload_url`. `PUT` the bytes there with the given `headers`, then pass `source.file_id` to `/v1/edit`. Uploads expire with the retention window.",

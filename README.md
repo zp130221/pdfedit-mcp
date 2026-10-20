@@ -50,6 +50,7 @@ Claude Code can also take the whole thing as a plugin, MCP server and skill toge
 
 | What | Where |
 |---|---|
+| The whole API in one file, for an AI assistant (give it to a model and it knows how to call the API) | [api.niubai.vip/llms-full.txt](https://api.niubai.vip/llms-full.txt) |
 | MCP server (`npx -y @niubai/pdfedit-mcp`) for Claude Code, Cursor, Claude Desktop | [`mcp/pdfedit-mcp/`](mcp/pdfedit-mcp/README.md) |
 | Agent skill (`npx skills add zp130221/pdfedit-mcp`), no Node needed | [`skills/pdfedit/`](skills/pdfedit/SKILL.md) |
 | TypeScript SDK (`@niubai/pdfedit`) | [`sdk/typescript/`](sdk/typescript/README.md) |
