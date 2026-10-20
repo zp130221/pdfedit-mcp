@@ -123,6 +123,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rate the API or report a problem
+         * @description `{"rating": 1-5, "message": "what you tried and what happened", "request_id": "the X-Request-Id of the call", "email": "optional"}`: a rating, a message, or both. No key needed. The owner reads every message; an edit that fails on a real document is treated as a bug and is usually fixed within days. Answers `202 {"received": true}`.
+         */
+        post: operations["feedback_v1_feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/files": {
         parameters: {
             query?: never;
@@ -2051,6 +2071,72 @@ export interface operations {
             /** @description error.code is one of: engine_timeout */
             504: {
                 headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    feedback_v1_feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description error.code is one of: invalid_request */
+            400: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description error.code is one of: rate_limited */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
                     /** @description Requests allowed per minute for this key's plan. */
                     "X-RateLimit-Limit"?: number;
                     /** @description Requests left in the current minute. */
