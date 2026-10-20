@@ -15,7 +15,10 @@
     "claude",
     "cursor",
     "ai-agent",
-    "document-automation"
+    "document-automation",
+    "agent-skill",
+    "skills",
+    "claude-skills"
   ],
   "mcpName": "io.github.zp130221/pdfedit-mcp",
   "homepage": "https://api.niubai.vip",
@@ -34,8 +37,9 @@
   },
   "main": "dist/index.js",
   "files": [
+    "README.md",
     "dist",
-    "README.md"
+    "skills"
   ],
   "engines": {
     "node": ">=20"
