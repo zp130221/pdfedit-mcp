@@ -5,7 +5,7 @@ license: MIT
 compatibility: Needs curl, or python3 for the bundled script, and network access to https://api.niubai.vip. No key needed to start (20 pages a day per IP, outputs marked SAMPLE); PDFEDIT_API_KEY lifts that.
 metadata:
   version: "1.0.2"
-  author: niubai
+  author: Niubai
   homepage: https://api.niubai.vip/quickstart
   source: https://github.com/zp130221/pdfedit-mcp
 ---
