@@ -3,6 +3,14 @@
 The MCP package (`@niubai/pdfedit-mcp`) is tagged `mcp-vX.Y.Z`; the API is versioned
 by date in the `X-API-Version` header.
 
+## 0.1.11 - 2026-10-21
+- The package ships the agent skill as well (`skills/pdfedit/`), which is where the
+  skills CLI looks inside an installed package, so an agent without Node's MCP support
+  can use the same tools over plain HTTP.
+- API side: a Simplified Chinese substitute that matches the document (Noto Serif/Sans
+  CJK SC) instead of a Taiwanese Ming face, and Word's faked bold on CJK text is
+  reproduced rather than lost, so a replaced name keeps the weight of the text around it.
+
 ## 0.1.10 - 2026-10-20
 - A local file is uploaded once per session: later calls that name the same unchanged
   path reuse the stored file (an hour, or until the gateway reports it gone), instead of
