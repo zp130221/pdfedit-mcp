@@ -7,6 +7,8 @@ returned.
 
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=pdfedit&config=eyJjb21tYW5kIjogIm5weCIsICJhcmdzIjogWyIteSIsICJAbml1YmFpL3BkZmVkaXQtbWNwIl19) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_MCP_server-0098FF?logo=visualstudiocode&logoColor=white)](vscode:mcp/install?%7B%22name%22%3A%20%22pdfedit%22%2C%20%22type%22%3A%20%22stdio%22%2C%20%22command%22%3A%20%22npx%22%2C%20%22args%22%3A%20%5B%22-y%22%2C%20%22%40niubai/pdfedit-mcp%22%5D%7D) [![npm](https://img.shields.io/npm/v/@niubai/pdfedit-mcp?label=npm)](https://www.npmjs.com/package/@niubai/pdfedit-mcp) [![MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+[![M8ven Score](https://m8ven.ai/badge/mcp/zp130221-pdfedit-mcp-n6x8sw?v=d3b363c2c55d41b01d968275c0c8fab4)](https://m8ven.ai/mcp/zp130221-pdfedit-mcp-n6x8sw?s=readme)
+
 ## Try it in 30 seconds, no key
 
 The server works with no key at all: 20 pages a day per IP, outputs marked
