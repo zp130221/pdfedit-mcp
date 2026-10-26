@@ -162,6 +162,5 @@ What the API refuses before touching the document:
 - [Examples](https://api.niubai.vip/examples) — ten before/after pairs, each with the request that produced it.
 - [Repository](https://github.com/zp130221/pdfedit-mcp) — this server, the SDKs and the hosted endpoint's source.
 
-MIT. The engine behind the API is AGPL-3.0; the API serves its complete source to its
-users at `GET /source` (any key, a free test key included; the hosted MCP endpoint relays
-it at `https://pdfedit-mcp-remote.niubai-pdfedit-remote-worker.workers.dev/source`).
+MIT -- this server, the SDKs, the agent skill and the OpenAPI document. The
+hosted API itself is a proprietary service.

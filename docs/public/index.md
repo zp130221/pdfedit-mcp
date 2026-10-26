@@ -121,6 +121,5 @@ that look like sealed or official papers are watermarked by default.
 - **HTTP**: the OpenAPI document is [`openapi/openapi.json`](../../openapi/openapi.json).
 - **SDKs**: [TypeScript](../../sdk/typescript/README.md) ·
   [Python](../../sdk/python/README.md)
-- **Source**: the engine is AGPL-3.0 and the API serves its complete source to its
-  users at `https://api.niubai.vip/source` (any API key; a free test key is enough). The
-  clients and the MCP package are MIT.
+- **License**: the clients, the SDKs, the agent skill and the OpenAPI document
+  are MIT. The hosted API itself is a proprietary service.

@@ -2144,7 +2144,7 @@
     }
   },
   "info": {
-    "description": "Edit text inside existing PDFs: replace, delete, redact, insert and fill forms, keeping the original fonts and layout, with every change verified before it is returned.\n\n**For an AI assistant.** The whole API in one file, written for a model to read: [llms-full.txt](https://api.niubai.vip/llms-full.txt).\n\n**Source.** The editing engine is free software under the AGPL-3.0; its complete source is served to API users at `GET /source` (a tar.gz of the engine package, its Dockerfile and the licence).\n\n## Error codes\n\nEvery error is `{\"error\": {\"code\", \"message\", \"hint\"}}` with one of these codes; `X-Request-Id` is on every response.\n\n| `error.code` | HTTP | Meaning |\n| --- | --- | --- |\n| `invalid_request` | 400 | The request is malformed, an edit is impossible as written, or an Idempotency-Key was reused with a different body. |\n| `unauthorized` | 401 | No key, an unknown key, or a revoked key. |\n| `quota_exceeded` | 402 | The month's allowance and any credit-pack pages are used up; buy a pack or upgrade on the account page. |\n| `forbidden_watermark_off` | 403 | options.watermark \"off\" on a flagged document needs a plan that allows it and accepted terms. |\n| `not_found` | 404 | No such file, job or route for this account. |\n| `conflict` | 409 | A request with this Idempotency-Key is still running; wait and re-poll, do not start another. |\n| `too_large` | 413 | The document exceeds the plan's size or page limit. |\n| `document_encrypted` | 422 | The PDF is encrypted and no (or a wrong) password was given. |\n| `document_unsupported` | 422 | The file is not a PDF the engine can open (damaged, a portfolio, a non-PDF). |\n| `signed_document` | 422 | The document carries a digital signature; pass options.break_signature true to edit it anyway. |\n| `edit_failed` | 422 | Every requested edit failed verification and was rolled back; see failed[] for the reasons. |\n| `rate_limited` | 429 | Over the plan's requests-per-minute, or the service is busy; honour Retry-After. |\n| `engine_error` | 500 | The engine crashed on this document; retry once, then report the X-Request-Id. |\n| `upstream_error` | 502 | source.url (or records_url) could not be fetched. |\n| `engine_timeout` | 504 | The synchronous run did not finish in time; send it again with options.async true. |\n\n## Headers\n\n`Idempotency-Key` on `POST /v1/edit` and `POST /v1/batch` makes retries safe. Rate-limited operations return `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`; a `429` adds `Retry-After`.\n\n## Webhooks\n\nSet `options.webhook_url` on an edit or a batch and the gateway POSTs the job's result body (plus `event` and `job_id`) to that URL when the job finishes, signed with `X-Signature` (HMAC-SHA256 of the raw body with your account's webhook secret from `GET /v1/limits`'s account tooling or the CLI), retrying at 1, 5 and 30 minutes on a non-2xx.",
+    "description": "Edit text inside existing PDFs: replace, delete, redact, insert and fill forms, keeping the original fonts and layout, with every change verified before it is returned.\n\n**For an AI assistant.** The whole API in one file, written for a model to read: [llms-full.txt](https://api.niubai.vip/llms-full.txt).\n\n## Error codes\n\nEvery error is `{\"error\": {\"code\", \"message\", \"hint\"}}` with one of these codes; `X-Request-Id` is on every response.\n\n| `error.code` | HTTP | Meaning |\n| --- | --- | --- |\n| `invalid_request` | 400 | The request is malformed, an edit is impossible as written, or an Idempotency-Key was reused with a different body. |\n| `unauthorized` | 401 | No key, an unknown key, or a revoked key. |\n| `quota_exceeded` | 402 | The month's allowance and any credit-pack pages are used up; buy a pack or upgrade on the account page. |\n| `forbidden_watermark_off` | 403 | options.watermark \"off\" on a flagged document needs a plan that allows it and accepted terms. |\n| `not_found` | 404 | No such file, job or route for this account. |\n| `conflict` | 409 | A request with this Idempotency-Key is still running; wait and re-poll, do not start another. |\n| `too_large` | 413 | The document exceeds the plan's size or page limit. |\n| `document_encrypted` | 422 | The PDF is encrypted and no (or a wrong) password was given. |\n| `document_unsupported` | 422 | The file is not a PDF the engine can open (damaged, a portfolio, a non-PDF). |\n| `signed_document` | 422 | The document carries a digital signature; pass options.break_signature true to edit it anyway. |\n| `edit_failed` | 422 | Every requested edit failed verification and was rolled back; see failed[] for the reasons. |\n| `rate_limited` | 429 | Over the plan's requests-per-minute, or the service is busy; honour Retry-After. |\n| `engine_error` | 500 | The engine crashed on this document; retry once, then report the X-Request-Id. |\n| `upstream_error` | 502 | source.url (or records_url) could not be fetched. |\n| `engine_timeout` | 504 | The synchronous run did not finish in time; send it again with options.async true. |\n\n## Headers\n\n`Idempotency-Key` on `POST /v1/edit` and `POST /v1/batch` makes retries safe. Rate-limited operations return `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`; a `429` adds `Retry-After`.\n\n## Webhooks\n\nSet `options.webhook_url` on an edit or a batch and the gateway POSTs the job's result body (plus `event` and `job_id`) to that URL when the job finishes, signed with `X-Signature` (HMAC-SHA256 of the raw body with your account's webhook secret from `GET /v1/limits`'s account tooling or the CLI), retrying at 1, 5 and 30 minutes on a non-2xx.",
     "title": "PDF Edit API Gateway",
     "version": "2026-10-12"
   },
@@ -2194,128 +2194,6 @@
         },
         "security": [],
         "summary": "Health check"
-      }
-    },
-    "/source": {
-      "get": {
-        "description": "The complete source of the editing engine this API runs, as a tar.gz, offered under the GNU AGPL-3.0 to the API's users: send your API key (a free `sk_test_` key is enough; the hosted MCP endpoint relays this for its keyless tier). This is the licence's network-use source offer; the gateway (keys, billing, storage) is a separate program and is not included.",
-        "operationId": "get_source_source_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/gzip": {}
-            },
-            "description": "Successful Response",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "description": "Requests allowed per minute for this key's plan.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-RateLimit-Remaining": {
-                "description": "Requests left in the current minute.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-RateLimit-Reset": {
-                "description": "Unix time at which the window refills.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-Request-Id": {
-                "description": "A unique id for this request; quote it to support.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: unauthorized",
-            "headers": {
-              "X-RateLimit-Limit": {
-                "description": "Requests allowed per minute for this key's plan.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-RateLimit-Remaining": {
-                "description": "Requests left in the current minute.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-RateLimit-Reset": {
-                "description": "Unix time at which the window refills.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-Request-Id": {
-                "description": "A unique id for this request; quote it to support.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            },
-            "description": "error.code is one of: rate_limited",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds to wait before retrying.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-RateLimit-Limit": {
-                "description": "Requests allowed per minute for this key's plan.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-RateLimit-Remaining": {
-                "description": "Requests left in the current minute.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-RateLimit-Reset": {
-                "description": "Unix time at which the window refills.",
-                "schema": {
-                  "type": "integer"
-                }
-              },
-              "X-Request-Id": {
-                "description": "A unique id for this request; quote it to support.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Download the engine's source (AGPL-3.0)",
-        "tags": [
-          "meta"
-        ]
       }
     },
     "/v1/batch": {

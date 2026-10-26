@@ -60,9 +60,7 @@ Claude Code can also take the whole thing as a plugin, MCP server and skill toge
 | OpenAPI document the SDKs and tool schemas are generated from | [`openapi/openapi.json`](openapi/openapi.json) |
 | What it does, pricing, ten before/after examples | [`docs/public/`](docs/public/index.md) |
 
-Everything here is MIT. The editing engine behind the API is AGPL-3.0; the API
-serves its complete source to its users at `GET /source` (any API key, a free
-test key included).
+Everything here is MIT. The hosted API itself is a proprietary service.
 
 The API is operated by Niubai (<https://niubai.vip>), support
 <zp130221@163.com>; payments are collected by [Creem](https://www.creem.io) as

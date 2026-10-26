@@ -10,6 +10,12 @@ by date in the `X-API-Version` header.
 - API side: a Simplified Chinese substitute that matches the document (Noto Serif/Sans
   CJK SC) instead of a Taiwanese Ming face, and Word's faked bold on CJK text is
   reproduced rather than lost, so a replaced name keeps the weight of the text around it.
+- API side, same day, from a comparison run over four public documents: a document that
+  embeds its fonts as Type1C -- the form Adobe's tools produce, and a whole class of
+  files that had been falling back to a substitute face at a slightly different size --
+  is now written in the document's own face at the size the line was set in; and a face
+  the document embedded without a readable name no longer leaves the output font
+  unnamed, which had made the replaced text unidentifiable to other PDF tools.
 
 ## 0.1.10 - 2026-10-20
 - A local file is uploaded once per session: later calls that name the same unchanged
