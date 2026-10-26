@@ -3,6 +3,27 @@
 The MCP package (`@niubai/pdfedit-mcp`) is tagged `mcp-vX.Y.Z`; the API is versioned
 by date in the `X-API-Version` header.
 
+## 0.1.12 - 2026-10-26
+- `GET /source` is gone (404). It existed to make the previous editing engine's
+  source available under its licence; the API now runs on an engine with no
+  third-party copyleft code in it, so there is nothing that offer applies to.
+  The clients, SDKs, agent skill and OpenAPI document in this repository remain
+  MIT -- that has not changed, and is now the whole of the licence story.
+- API side: text inside an annotation -- a sticky note, a stamp, a form
+  widget's own drawing -- is edited only when `scope.layers` asks for
+  `"annotations"`. It is not in the default (`["content", "forms"]`) and the
+  reference has always said so, but an edit whose text was nowhere on the page
+  would fall through to the annotations anyway and report success. If you were
+  relying on that, name the layer.
+- API side: `op: "form"` on a checkbox or a radio group reports what it did.
+  Clearing a checkbox (`false`) and selecting a radio group both wrote the
+  document correctly and then returned `readback_failed`, so a caller saw a
+  failure over a document that was right.
+- API side: replacing a word the document's own font cannot write -- a
+  substituted face is brought in for it -- no longer nudges the text BEFORE
+  the edit. Up to 1.9pt on a heading, measured; nothing ahead of an edit has
+  any reason to move.
+
 ## 0.1.11 - 2026-10-21
 - The package ships the agent skill as well (`skills/pdfedit/`), which is where the
   skills CLI looks inside an installed package, so an agent without Node's MCP support
