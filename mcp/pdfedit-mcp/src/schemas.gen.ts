@@ -113,7 +113,7 @@ export const EditModel = z.strictObject({
   "flatten": z.boolean().describe("(default: false)").optional(),
   "image": z.string().nullable().describe("The image to place: PNG, JPEG, GIF, BMP or WebP, as base64 (a `data:` URL is accepted). JPEG is stored as sent; PNG keeps its transparency.").optional(),
   "match": MatchModel.optional(),
-  "op": z.enum(["replace", "delete", "redact", "insert", "form", "stamp"]).describe("(default: \"replace\")").optional(),
+  "op": z.enum(["replace", "delete", "redact", "insert", "form", "stamp", "remove_image"]).describe("(default: \"replace\")").optional(),
   "replace": z.string().nullable().optional(),
   "scope": ScopeModel.optional(),
   "style": StyleModel.nullable().optional(),
@@ -174,6 +174,7 @@ export const BatchRequest = z.strictObject({
  */
 export const TextRequest = z.strictObject({
   "cursor": z.string().nullable().optional(),
+  "images": z.boolean().describe("Also list the images each page draws (`images[]`: page, name, bbox, pixels) -- what `op: remove_image` takes a box from. (default: false)").optional(),
   "layers": z.array(z.enum(["content", "forms", "annotations"])).min(1).optional(),
   "limit": z.int().min(1).max(1000).describe("(default: 200)").optional(),
   "match": MatchModel.optional(),

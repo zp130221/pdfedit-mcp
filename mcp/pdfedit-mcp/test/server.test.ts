@@ -29,6 +29,7 @@ describe('buildServer', () => {
       'insert',
       'form',
       'stamp',
+      'remove_image',
     ]);
   });
 });

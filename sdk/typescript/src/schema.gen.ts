@@ -94,7 +94,7 @@ export interface paths {
         put?: never;
         /**
          * Edit a PDF
-         * @description Apply one or more edits (replace, delete, redact, insert, form fill, stamp an image) to a document and get the edited PDF back with every change verified. Send the document as a multipart upload (`file`) with `edits` as a JSON string, or as JSON with `source.url` or a `source.file_id` from an earlier upload. Small documents answer `200` with the result at once; larger ones (over the plan's sync page limit) and any request with `options.async` true answer `202` with a `job_id` to poll at `GET /v1/jobs/{job_id}` (or set `options.webhook_url` to be called when it finishes). Add `Accept: application/pdf` to receive the edited file itself instead of JSON. Each entry in `changes` says which font was written (`font_source`, `font_used`), whether the pixel check passed (`verified`, `collateral_pixels`) and links a before/after preview; `unmatched` and `failed` list what did not happen and why.
+         * @description Apply one or more edits (replace, delete, redact, insert, form fill, stamp or remove an image) to a document and get the edited PDF back with every change verified. Send the document as a multipart upload (`file`) with `edits` as a JSON string, or as JSON with `source.url` or a `source.file_id` from an earlier upload. Small documents answer `200` with the result at once; larger ones (over the plan's sync page limit) and any request with `options.async` true answer `202` with a `job_id` to poll at `GET /v1/jobs/{job_id}` (or set `options.webhook_url` to be called when it finishes). Add `Accept: application/pdf` to receive the edited file itself instead of JSON. Each entry in `changes` says which font was written (`font_source`, `font_used`), whether the pixel check passed (`verified`, `collateral_pixels`) and links a before/after preview; `unmatched` and `failed` list what did not happen and why.
          */
         post: operations["post_edit_v1_edit_post"];
         delete?: never;
@@ -278,7 +278,7 @@ export interface paths {
         put?: never;
         /**
          * Rotate, delete, extract or append pages
-         * @description An ordered list of page operations on one document -- `rotate` (90/180/270), `delete`, `extract` (a new document from the pages named, in that order) and `append` (another document's pages at the end, by `file_id` or `url`) -- applied all or nothing. The result is a new file. Every page not named is the page it was, byte for byte. Free: structural work is not billed.
+         * @description An ordered list of page operations on one document -- `rotate` (90/180/270), `delete`, `extract` (a new document from the pages named, in that order), `append` (another document's pages at the end, by `file_id` or `url`) and `watermark` (text tiled diagonally over each page, translucent) -- applied all or nothing. The result is a new file. Every page not named is the page it was, byte for byte. Free: structural work is not billed.
          */
         post: operations["post_pages_v1_pages_post"];
         delete?: never;
@@ -318,7 +318,7 @@ export interface paths {
         put?: never;
         /**
          * Read the text of a PDF
-         * @description Every text span with its page, box, font and `span_id`, plus form fields, for the whole document or a page range. Use it to find what to edit and to scope an edit to one exact span (`scope.span_ids`). Free: reading does not bill pages.
+         * @description Every text span with its page, box, font and `span_id`, plus form fields and (with `images: true`) the images each page draws, for the whole document or a page range. Use it to find what to edit and to scope an edit to one exact span (`scope.span_ids`). Free: reading does not bill pages.
          */
         post: operations["post_text_v1_text_post"];
         delete?: never;
@@ -736,7 +736,7 @@ export interface components {
              * @default replace
              * @enum {string}
              */
-            op?: "replace" | "delete" | "redact" | "insert" | "form" | "stamp";
+            op?: "replace" | "delete" | "redact" | "insert" | "form" | "stamp" | "remove_image";
             /** Replace */
             replace?: string | null;
             scope?: components["schemas"]["ScopeModel"];
@@ -1028,6 +1028,22 @@ export interface components {
              */
             status?: string;
         };
+        /**
+         * ImageOut
+         * @description One image a page draws (``POST /v1/text`` with ``images: true``).
+         */
+        ImageOut: {
+            /** Bbox */
+            bbox?: number[];
+            /** Name */
+            name: string;
+            /** Page */
+            page: number;
+            /** Pixels */
+            pixels?: number[];
+        } & {
+            [key: string]: unknown;
+        };
         /** JobListOut */
         JobListOut: {
             /** Jobs */
@@ -1174,22 +1190,52 @@ export interface components {
          */
         PageOpModel: {
             /**
+             * Angle
+             * @description watermark only: degrees (default -30).
+             */
+            angle?: number | null;
+            /**
+             * Color
+             * @description watermark only: `#rrggbb` (default #808080).
+             */
+            color?: string | null;
+            /**
              * Degrees
              * @description rotate only: 90, 180 or 270 (default 90), added to the page's current rotation.
              */
             degrees?: number | null;
             /**
+             * Font
+             * @description watermark only: a name from GET /v1/fonts (default `CJK Sans`, which also covers Latin).
+             */
+            font?: string | null;
+            /**
              * Op
              * @enum {string}
              */
-            op: "rotate" | "delete" | "extract" | "append";
+            op: "rotate" | "delete" | "extract" | "append" | "watermark";
+            /**
+             * Opacity
+             * @description watermark only: 0..1 (default 0.15).
+             */
+            opacity?: number | null;
             /**
              * Pages
-             * @description rotate / delete / extract: which pages. Omitted means all for rotate; required for delete and extract.
+             * @description rotate / delete / extract / watermark: which pages. Omitted means all for rotate and watermark; required for delete and extract.
              */
             pages?: string | number[] | null;
+            /**
+             * Size
+             * @description watermark only: point size (default 28).
+             */
+            size?: number | null;
             /** @description append only: the document whose pages go at the end, by `file_id` or `url` like the main source. */
             source?: components["schemas"]["SourceModel"] | null;
+            /**
+             * Text
+             * @description watermark only: the text tiled diagonally over each page.
+             */
+            text?: string | null;
         };
         /**
          * PagesRequest
@@ -1361,6 +1407,12 @@ export interface components {
         TextRequest: {
             /** Cursor */
             cursor?: string | null;
+            /**
+             * Images
+             * @description Also list the images each page draws (`images[]`: page, name, bbox, pixels) -- what `op: remove_image` takes a box from.
+             * @default false
+             */
+            images?: boolean;
             /** Layers */
             layers?: ("content" | "forms" | "annotations")[];
             /**
@@ -1386,6 +1438,8 @@ export interface components {
         TextResponse: {
             /** Fields */
             fields?: components["schemas"]["FieldOut"][] | null;
+            /** Images */
+            images?: components["schemas"]["ImageOut"][] | null;
             /** Next Cursor */
             next_cursor?: string | null;
             /**

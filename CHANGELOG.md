@@ -3,6 +3,21 @@
 The MCP package (`@niubai/pdfedit-mcp`) is tagged `mcp-vX.Y.Z`; the API is versioned
 by date in the `X-API-Version` header.
 
+## 0.1.14 - 2026-10-27
+- **`op: "remove_image"`: take an image off a page.** Every image drawn inside
+  `box{page, x, y, w, h}` is removed -- its resource with it once nothing else
+  draws it -- and the page outside the box's rows is proved unchanged, as for
+  a `stamp`. The box comes from the listing below; an image that merely
+  brushes the box is a different image and is left alone.
+- **`/v1/text` lists images.** `images: true` adds `images[]` to the
+  response: each image a page draws, with its name, pixel size and the box it
+  was drawn into (points from the page's top-left, like every box here).
+  `pdf_find` takes the same flag.
+- API side: `POST /v1/pages` gained `watermark` -- `text` tiled diagonally
+  over each page named, translucent (`opacity`, `size`, `color`, `angle`,
+  `font`), as real text in an embedded face so it reads back and travels
+  with the page.
+
 ## 0.1.13 - 2026-10-27
 - **`op: "stamp"`: place an image on a page.** A signature, a chop, a logo:
   `image` (base64 PNG, JPEG, GIF, BMP or WebP; a `data:` URL is accepted) is

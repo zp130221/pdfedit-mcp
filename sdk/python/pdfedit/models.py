@@ -143,6 +143,7 @@ class Op(Enum):
     insert = 'insert'
     form = 'form'
     stamp = 'stamp'
+    remove_image = 'remove_image'
 
 
 @dataclass
@@ -231,6 +232,14 @@ class HealthOut:
 
 
 @dataclass
+class ImageOut:
+    name: str
+    page: int
+    bbox: list[float] | None = None
+    pixels: list[int] | None = None
+
+
+@dataclass
 class JobSummaryOut:
     job_id: str
     kind: str
@@ -284,6 +293,7 @@ class Op1(Enum):
     delete = 'delete'
     extract = 'extract'
     append = 'append'
+    watermark = 'watermark'
 
 
 @dataclass
@@ -370,6 +380,7 @@ class StyleModel:
 class TextRequest:
     source: SourceModel
     cursor: str | None = None
+    images: bool | None = False
     layers: list[Layer] | None = None
     limit: int | None = 200
     match: MatchModel | None = None
@@ -521,9 +532,15 @@ class JobResponse:
 @dataclass
 class PageOpModel:
     op: Op1
+    angle: float | None = None
+    color: str | None = None
     degrees: int | None = None
+    font: str | None = None
+    opacity: float | None = None
     pages: str | list[int] | None = None
+    size: float | None = None
     source: SourceModel | None = None
+    text: str | None = None
 
 
 @dataclass
@@ -544,6 +561,7 @@ class PreviewRequest:
 @dataclass
 class TextResponse:
     fields: list[FieldOut] | None = None
+    images: list[ImageOut] | None = None
     next_cursor: str | None = None
     page_count: int | None = 0
     spans: list[TextSpanOut] | None = None

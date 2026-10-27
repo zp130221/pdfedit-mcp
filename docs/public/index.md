@@ -35,10 +35,11 @@ Code, Cursor or Claude Desktop), a [TypeScript SDK](../../sdk/typescript/README.
 | `insert` | Add a line, at a point or hung off existing text, inheriting that text's style. |
 | `form` | Fill AcroForm fields by name, with the value read back after reopening the file. Optional `flatten`. |
 | `stamp` | Place an image -- a signature, a chop, a logo -- fitted into a box on a page. PNG keeps its transparency; JPEG is stored as sent. |
+| `remove_image` | Take out every image drawn inside a box. `POST /v1/text` with `images: true` lists each page's images and their boxes. |
 
-Beside the edits, `POST /v1/pages` rotates, deletes, extracts and appends pages: an ordered
-list of operations, applied all or nothing, every page not named left byte for byte as it
-was. Not billed.
+Beside the edits, `POST /v1/pages` rotates, deletes, extracts and appends pages, and
+tiles a translucent text watermark over them: an ordered list of operations, applied all
+or nothing, every page not named left byte for byte as it was. Not billed.
 
 Across it all: four match modes (exact, case-insensitive, word, linear-time regex), page / region
 / anchor / occurrence scoping, paragraph reflow when the replacement is much longer,
