@@ -23,26 +23,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/source": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Download the engine's source (AGPL-3.0)
-         * @description The complete source of the editing engine this API runs, as a tar.gz, offered under the GNU AGPL-3.0 to the API's users: send your API key (a free `sk_test_` key is enough; the hosted MCP endpoint relays this for its keyless tier). This is the licence's network-use source offer; the gateway (keys, billing, storage) is a separate program and is not included.
-         */
-        get: operations["get_source_source_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/batch": {
         parameters: {
             query?: never;
@@ -734,6 +714,7 @@ export interface components {
             /** Job Id */
             job_id: string;
             output?: components["schemas"]["OutputOut"] | null;
+            redaction?: components["schemas"]["RedactionOut"] | null;
             /** Status */
             status: string;
             /** Unmatched */
@@ -1164,6 +1145,38 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * RedactionOut
+         * @description What a redaction proves about itself. Null unless an edit redacted.
+         *
+         *     A redaction's whole claim is that the text is gone, so the report says
+         *     where it is NOT gone. ``found_in`` lists the redacted strings that can
+         *     still be found anywhere in the document -- the page text, the document
+         *     information dictionary, the XMP packet, a bookmark title -- and
+         *     ``places`` says where each one survived. Both empty is the clean answer.
+         *
+         *     ``metadata_scrubbed`` is whether ``redact_metadata`` actually changed
+         *     anything, and ``metadata_places`` is what it changed. A document whose
+         *     metadata never mentioned the string reports ``false`` and an empty list,
+         *     which is not a failure: there was nothing to sweep.
+         */
+        RedactionOut: {
+            /** Found In */
+            found_in?: string[];
+            /** Metadata Places */
+            metadata_places?: string[];
+            /**
+             * Metadata Scrubbed
+             * @default false
+             */
+            metadata_scrubbed?: boolean;
+            /** Places */
+            places?: {
+                [key: string]: string[];
+            };
+        } & {
+            [key: string]: unknown;
+        };
         /** RegionModel */
         RegionModel: {
             /**
@@ -1430,70 +1443,6 @@ export interface operations {
             /** @description error.code is one of: engine_error */
             500: {
                 headers: {
-                    /** @description A unique id for this request; quote it to support. */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    get_source_source_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    /** @description Requests allowed per minute for this key's plan. */
-                    "X-RateLimit-Limit"?: number;
-                    /** @description Requests left in the current minute. */
-                    "X-RateLimit-Remaining"?: number;
-                    /** @description Unix time at which the window refills. */
-                    "X-RateLimit-Reset"?: number;
-                    /** @description A unique id for this request; quote it to support. */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/gzip": unknown;
-                };
-            };
-            /** @description error.code is one of: unauthorized */
-            401: {
-                headers: {
-                    /** @description Requests allowed per minute for this key's plan. */
-                    "X-RateLimit-Limit"?: number;
-                    /** @description Requests left in the current minute. */
-                    "X-RateLimit-Remaining"?: number;
-                    /** @description Unix time at which the window refills. */
-                    "X-RateLimit-Reset"?: number;
-                    /** @description A unique id for this request; quote it to support. */
-                    "X-Request-Id"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description error.code is one of: rate_limited */
-            429: {
-                headers: {
-                    /** @description Seconds to wait before retrying. */
-                    "Retry-After"?: number;
-                    /** @description Requests allowed per minute for this key's plan. */
-                    "X-RateLimit-Limit"?: number;
-                    /** @description Requests left in the current minute. */
-                    "X-RateLimit-Remaining"?: number;
-                    /** @description Unix time at which the window refills. */
-                    "X-RateLimit-Reset"?: number;
                     /** @description A unique id for this request; quote it to support. */
                     "X-Request-Id"?: string;
                     [name: string]: unknown;

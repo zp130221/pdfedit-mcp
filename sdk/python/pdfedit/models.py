@@ -281,6 +281,14 @@ class QueuedResponse:
     status: Literal['queued'] = 'queued'
 
 
+@dataclass
+class RedactionOut:
+    found_in: list[str] | None = None
+    metadata_places: list[str] | None = None
+    metadata_scrubbed: bool | None = False
+    places: dict[str, list[str]] | None = None
+
+
 class Units1(Enum):
     fraction = 'fraction'
     pt = 'pt'
@@ -457,6 +465,7 @@ class EditResponse:
     error: dict[str, Any] | None = None
     failed: list[FailedOut] | None = None
     output: OutputOut | None = None
+    redaction: RedactionOut | None = None
     unmatched: list[UnmatchedOut] | None = None
     usage: UsageOut | None = None
     warnings: list[str] | None = None
