@@ -28,6 +28,7 @@ describe('buildServer', () => {
       'redact',
       'insert',
       'form',
+      'stamp',
     ]);
   });
 });

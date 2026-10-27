@@ -94,7 +94,7 @@ export interface paths {
         put?: never;
         /**
          * Edit a PDF
-         * @description Apply one or more edits (replace, delete, redact, insert, form fill) to a document and get the edited PDF back with every change verified. Send the document as a multipart upload (`file`) with `edits` as a JSON string, or as JSON with `source.url` or a `source.file_id` from an earlier upload. Small documents answer `200` with the result at once; larger ones (over the plan's sync page limit) and any request with `options.async` true answer `202` with a `job_id` to poll at `GET /v1/jobs/{job_id}` (or set `options.webhook_url` to be called when it finishes). Add `Accept: application/pdf` to receive the edited file itself instead of JSON. Each entry in `changes` says which font was written (`font_source`, `font_used`), whether the pixel check passed (`verified`, `collateral_pixels`) and links a before/after preview; `unmatched` and `failed` list what did not happen and why.
+         * @description Apply one or more edits (replace, delete, redact, insert, form fill, stamp an image) to a document and get the edited PDF back with every change verified. Send the document as a multipart upload (`file`) with `edits` as a JSON string, or as JSON with `source.url` or a `source.file_id` from an earlier upload. Small documents answer `200` with the result at once; larger ones (over the plan's sync page limit) and any request with `options.async` true answer `202` with a `job_id` to poll at `GET /v1/jobs/{job_id}` (or set `options.webhook_url` to be called when it finishes). Add `Accept: application/pdf` to receive the edited file itself instead of JSON. Each entry in `changes` says which font was written (`font_source`, `font_used`), whether the pixel check passed (`verified`, `collateral_pixels`) and links a before/after preview; `unmatched` and `failed` list what did not happen and why.
          */
         post: operations["post_edit_v1_edit_post"];
         delete?: never;
@@ -261,6 +261,26 @@ export interface paths {
         get: operations["get_limits_v1_limits_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate, delete, extract or append pages
+         * @description An ordered list of page operations on one document -- `rotate` (90/180/270), `delete`, `extract` (a new document from the pages named, in that order) and `append` (another document's pages at the end, by `file_id` or `url`) -- applied all or nothing. The result is a new file. Every page not named is the page it was, byte for byte. Free: structural work is not billed.
+         */
+        post: operations["post_pages_v1_pages_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -550,6 +570,39 @@ export interface components {
             source: components["schemas"]["SourceModel"];
         };
         /**
+         * BoxModel
+         * @description Where a `stamp` goes: a rectangle on a page, in points from the top-left.
+         *
+         *     The same convention as every bbox this engine reports, so a box read off
+         *     `/v1/text` or a preview can be sent back unchanged. The image is fitted
+         *     INSIDE the box keeping its proportion and centred, so `w`/`h` are the
+         *     most it may take, not the size it is forced to.
+         */
+        BoxModel: {
+            /**
+             * H
+             * @description Height in points.
+             */
+            h: number;
+            /** Page */
+            page: number;
+            /**
+             * W
+             * @description Width in points.
+             */
+            w: number;
+            /**
+             * X
+             * @description Left edge, points from the page's left.
+             */
+            x: number;
+            /**
+             * Y
+             * @description Top edge, points from the page's TOP.
+             */
+            y: number;
+        };
+        /**
          * ChangeOut
          * @description One verified change: ``Change.to_dict()`` plus ``preview_url``.
          *
@@ -654,6 +707,7 @@ export interface components {
         /** EditModel */
         EditModel: {
             at?: components["schemas"]["AtModel"] | null;
+            box?: components["schemas"]["BoxModel"] | null;
             /** Fields */
             fields?: {
                 [key: string]: unknown;
@@ -671,13 +725,18 @@ export interface components {
              * @default false
              */
             flatten?: boolean;
+            /**
+             * Image
+             * @description The image to place: PNG, JPEG, GIF, BMP or WebP, as base64 (a `data:` URL is accepted). JPEG is stored as sent; PNG keeps its transparency.
+             */
+            image?: string | null;
             match?: components["schemas"]["MatchModel"];
             /**
              * Op
              * @default replace
              * @enum {string}
              */
-            op?: "replace" | "delete" | "redact" | "insert" | "form";
+            op?: "replace" | "delete" | "redact" | "insert" | "form" | "stamp";
             /** Replace */
             replace?: string | null;
             scope?: components["schemas"]["ScopeModel"];
@@ -1104,6 +1163,58 @@ export interface components {
             pages?: number;
             /** Url */
             url?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * PageOpModel
+         * @description One page operation. ``pages`` takes what ``scope.pages`` takes
+         *     (``"3"``, ``"1-3"``, ``"1,4"``, ``"all"``, ``"last"``, ``[3, 1]``); for
+         *     ``extract`` a list is kept in the order given.
+         */
+        PageOpModel: {
+            /**
+             * Degrees
+             * @description rotate only: 90, 180 or 270 (default 90), added to the page's current rotation.
+             */
+            degrees?: number | null;
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "rotate" | "delete" | "extract" | "append";
+            /**
+             * Pages
+             * @description rotate / delete / extract: which pages. Omitted means all for rotate; required for delete and extract.
+             */
+            pages?: string | number[] | null;
+            /** @description append only: the document whose pages go at the end, by `file_id` or `url` like the main source. */
+            source?: components["schemas"]["SourceModel"] | null;
+        };
+        /**
+         * PagesRequest
+         * @description ``POST /v1/pages``'s body: a document and an ordered list of page
+         *     operations, applied all or nothing.
+         */
+        PagesRequest: {
+            /** Ops */
+            ops: components["schemas"]["PageOpModel"][];
+            source: components["schemas"]["SourceModel"];
+        };
+        /**
+         * PagesResponse
+         * @description ``POST /v1/pages``'s body: the new document and what was done to it.
+         */
+        PagesResponse: {
+            /** Applied */
+            applied?: {
+                [key: string]: unknown;
+            }[];
+            output: components["schemas"]["OutputOut"];
+            /** Page Count */
+            page_count: number;
+            /** Status */
+            status: string;
         } & {
             [key: string]: unknown;
         };
@@ -2658,6 +2769,193 @@ export interface operations {
                 headers: {
                     /** @description Seconds to wait before retrying. */
                     "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    post_pages_v1_pages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PagesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagesResponse"];
+                };
+            };
+            /** @description error.code is one of: invalid_request */
+            400: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description error.code is one of: unauthorized */
+            401: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description error.code is one of: not_found */
+            404: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description error.code is one of: too_large */
+            413: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed */
+            422: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description error.code is one of: rate_limited */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying. */
+                    "Retry-After"?: number;
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description error.code is one of: engine_error */
+            500: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description error.code is one of: upstream_error */
+            502: {
+                headers: {
+                    /** @description Requests allowed per minute for this key's plan. */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests left in the current minute. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix time at which the window refills. */
+                    "X-RateLimit-Reset"?: number;
+                    /** @description A unique id for this request; quote it to support. */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description error.code is one of: engine_timeout */
+            504: {
+                headers: {
                     /** @description Requests allowed per minute for this key's plan. */
                     "X-RateLimit-Limit"?: number;
                     /** @description Requests left in the current minute. */

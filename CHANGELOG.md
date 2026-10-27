@@ -3,6 +3,25 @@
 The MCP package (`@niubai/pdfedit-mcp`) is tagged `mcp-vX.Y.Z`; the API is versioned
 by date in the `X-API-Version` header.
 
+## 0.1.13 - 2026-10-27
+- **`op: "stamp"`: place an image on a page.** A signature, a chop, a logo:
+  `image` (base64 PNG, JPEG, GIF, BMP or WebP; a `data:` URL is accepted) is
+  fitted into `box{page, x, y, w, h}` -- points from the page's top-left, the
+  same frame every bbox this API reports is in -- keeping its proportion and
+  centred. A PNG keeps its transparency (a signature on a transparent field
+  stays one; nothing under it is painted over); a JPEG is stored as sent. It
+  is an edit like any other: the page outside the box is proved unchanged,
+  `atomic` rolls it back, it is billed by its page and previewed, and
+  `pdf_edit` takes it through `edits[]`.
+- **`POST /v1/pages`: rotate, delete, extract and append pages.** An ordered
+  list of operations on one document -- `rotate` (90/180/270, added to the
+  page's own), `delete`, `extract` (a new document from the pages named, in
+  the order named), `append` (another document's pages at the end, by
+  `file_id` or `url`) -- applied all or nothing; a refused op is named by its
+  index and nothing is written. Every page not named is the page it was,
+  byte for byte. Not billed. The SDKs carry the request and response types;
+  there is no MCP tool for it yet.
+
 ## 0.1.12 - 2026-10-26
 - `GET /source` is gone (404). It existed to make the previous editing engine's
   source available under its licence; the API now runs on an engine with no

@@ -34,6 +34,22 @@ export const AtModel = z.strictObject({
   "y": z.number().nullable().describe("Baseline origin y: where the first line sits, measured from the page's TOP edge (PDF viewer convention, as every bbox and span origin in this API). A fraction of the page height when units='fraction'.").optional(),
 });
 
+/**
+ * Where a `stamp` goes: a rectangle on a page, in points from the top-left.
+ *
+ * The same convention as every bbox this engine reports, so a box read off
+ * `/v1/text` or a preview can be sent back unchanged. The image is fitted
+ * INSIDE the box keeping its proportion and centred, so `w`/`h` are the
+ * most it may take, not the size it is forced to.
+ */
+export const BoxModel = z.strictObject({
+  "h": z.number().max(14400).describe("Height in points."),
+  "page": z.int().min(1),
+  "w": z.number().max(14400).describe("Width in points."),
+  "x": z.number().min(0).describe("Left edge, points from the page's left."),
+  "y": z.number().min(0).describe("Top edge, points from the page's TOP."),
+});
+
 export const StyleModel = z.strictObject({
   "color": z.string().regex(new RegExp("^#[0-9a-fA-F]{6}$")).nullable().optional(),
   "font": z.string().nullable().optional(),
@@ -90,12 +106,14 @@ export const ScopeModel = z.strictObject({
 
 export const EditModel = z.strictObject({
   "at": AtModel.nullable().optional(),
+  "box": BoxModel.nullable().optional(),
   "fields": z.record(z.string(), z.unknown()).nullable().optional(),
   "find": z.string().nullable().optional(),
   "fit": z.enum(["auto", "reflow", "strict"]).describe("(default: \"auto\")").optional(),
   "flatten": z.boolean().describe("(default: false)").optional(),
+  "image": z.string().nullable().describe("The image to place: PNG, JPEG, GIF, BMP or WebP, as base64 (a `data:` URL is accepted). JPEG is stored as sent; PNG keeps its transparency.").optional(),
   "match": MatchModel.optional(),
-  "op": z.enum(["replace", "delete", "redact", "insert", "form"]).describe("(default: \"replace\")").optional(),
+  "op": z.enum(["replace", "delete", "redact", "insert", "form", "stamp"]).describe("(default: \"replace\")").optional(),
   "replace": z.string().nullable().optional(),
   "scope": ScopeModel.optional(),
   "style": StyleModel.nullable().optional(),
@@ -176,4 +194,4 @@ export const PreviewRequest = z.strictObject({
 });
 
 /** The components this file was generated from, for the staleness test. */
-export const GENERATED_FROM = ["SourceModel", "RegionModel", "AtModel", "StyleModel", "MatchModel", "FontOptions", "GatewayOptions", "ScopeModel", "EditModel", "BatchOptions", "BatchRequest", "TextRequest", "PreviewRequest"] as const;
+export const GENERATED_FROM = ["SourceModel", "RegionModel", "AtModel", "BoxModel", "StyleModel", "MatchModel", "FontOptions", "GatewayOptions", "ScopeModel", "EditModel", "BatchOptions", "BatchRequest", "TextRequest", "PreviewRequest"] as const;

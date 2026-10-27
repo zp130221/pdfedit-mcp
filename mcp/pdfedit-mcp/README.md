@@ -1,7 +1,7 @@
 # `@niubai/pdfedit-mcp` — edit existing PDFs from your agent
 
-Five MCP tools over the PDF Edit API: **replace, delete, redact, insert and form-fill
-text inside a PDF that already exists**, keeping the original font, the original layout
+Five MCP tools over the PDF Edit API: **replace, delete, redact, insert, form-fill
+and stamp an image inside a PDF that already exists**, keeping the original font, the original layout
 and everything you did not point at. Not "generate a new PDF that looks similar" — the
 same file, with the words you named changed, and a before/after picture of every change.
 

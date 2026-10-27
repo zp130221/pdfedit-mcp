@@ -84,7 +84,7 @@ export const PdfJobInput = z.strictObject({
 
 export const DESCRIPTIONS = {
   pdf_edit:
-    'Edit the text of an existing PDF in place: replace, delete, redact, insert, or fill form fields, keeping the original layout, fonts and everything you did not point at. ' +
+    'Edit an existing PDF in place: replace, delete, redact or insert text, fill form fields, or stamp an image (a signature, a chop) into a box, keeping the original layout, fonts and everything you did not point at. ' +
     '`edits[]` is taken exactly as the API takes it (`op`, `scope`, `match`, `fit`), and the result carries up to 3 before/after previews of the pages that changed. ' +
     STRATEGY,
   pdf_batch:

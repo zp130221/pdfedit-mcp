@@ -374,6 +374,52 @@
         "title": "BatchRequest",
         "type": "object"
       },
+      "BoxModel": {
+        "additionalProperties": false,
+        "description": "Where a `stamp` goes: a rectangle on a page, in points from the top-left.\n\nThe same convention as every bbox this engine reports, so a box read off\n`/v1/text` or a preview can be sent back unchanged. The image is fitted\nINSIDE the box keeping its proportion and centred, so `w`/`h` are the\nmost it may take, not the size it is forced to.",
+        "properties": {
+          "h": {
+            "description": "Height in points.",
+            "exclusiveMinimum": 0.0,
+            "maximum": 14400.0,
+            "title": "H",
+            "type": "number"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "w": {
+            "description": "Width in points.",
+            "exclusiveMinimum": 0.0,
+            "maximum": 14400.0,
+            "title": "W",
+            "type": "number"
+          },
+          "x": {
+            "description": "Left edge, points from the page's left.",
+            "minimum": 0.0,
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "description": "Top edge, points from the page's TOP.",
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "title": "BoxModel",
+        "type": "object"
+      },
       "ChangeOut": {
         "additionalProperties": true,
         "description": "One verified change: ``Change.to_dict()`` plus ``preview_url``.\n\n``preview_url`` is null when the change has no preview -- ``preview:\n\"none\"``, or the per-response cap (``settings.preview_cap``) was reached,\nin which case ``warnings`` carries ``preview_capped``.",
@@ -573,6 +619,16 @@
               }
             ]
           },
+          "box": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BoxModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "fields": {
             "anyOf": [
               {
@@ -611,6 +667,18 @@
             "title": "Flatten",
             "type": "boolean"
           },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The image to place: PNG, JPEG, GIF, BMP or WebP, as base64 (a `data:` URL is accepted). JPEG is stored as sent; PNG keeps its transparency.",
+            "title": "Image"
+          },
           "match": {
             "$ref": "#/components/schemas/MatchModel"
           },
@@ -621,7 +689,8 @@
               "delete",
               "redact",
               "insert",
-              "form"
+              "form",
+              "stamp"
             ],
             "title": "Op",
             "type": "string"
@@ -1449,6 +1518,124 @@
           "file_id"
         ],
         "title": "OutputOut",
+        "type": "object"
+      },
+      "PageOpModel": {
+        "additionalProperties": false,
+        "description": "One page operation. ``pages`` takes what ``scope.pages`` takes\n(``\"3\"``, ``\"1-3\"``, ``\"1,4\"``, ``\"all\"``, ``\"last\"``, ``[3, 1]``); for\n``extract`` a list is kept in the order given.",
+        "properties": {
+          "degrees": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "rotate only: 90, 180 or 270 (default 90), added to the page's current rotation.",
+            "title": "Degrees"
+          },
+          "op": {
+            "enum": [
+              "rotate",
+              "delete",
+              "extract",
+              "append"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "pages": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "rotate / delete / extract: which pages. Omitted means all for rotate; required for delete and extract.",
+            "title": "Pages"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceModel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "append only: the document whose pages go at the end, by `file_id` or `url` like the main source."
+          }
+        },
+        "required": [
+          "op"
+        ],
+        "title": "PageOpModel",
+        "type": "object"
+      },
+      "PagesRequest": {
+        "additionalProperties": false,
+        "description": "``POST /v1/pages``'s body: a document and an ordered list of page\noperations, applied all or nothing.",
+        "properties": {
+          "ops": {
+            "items": {
+              "$ref": "#/components/schemas/PageOpModel"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Ops",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceModel"
+          }
+        },
+        "required": [
+          "source",
+          "ops"
+        ],
+        "title": "PagesRequest",
+        "type": "object"
+      },
+      "PagesResponse": {
+        "additionalProperties": true,
+        "description": "``POST /v1/pages``'s body: the new document and what was done to it.",
+        "properties": {
+          "applied": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Applied",
+            "type": "array"
+          },
+          "output": {
+            "$ref": "#/components/schemas/OutputOut"
+          },
+          "page_count": {
+            "title": "Page Count",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "output",
+          "page_count"
+        ],
+        "title": "PagesResponse",
         "type": "object"
       },
       "PreviewRequest": {
@@ -2888,7 +3075,7 @@
     },
     "/v1/edit": {
       "post": {
-        "description": "Apply one or more edits (replace, delete, redact, insert, form fill) to a document and get the edited PDF back with every change verified. Send the document as a multipart upload (`file`) with `edits` as a JSON string, or as JSON with `source.url` or a `source.file_id` from an earlier upload. Small documents answer `200` with the result at once; larger ones (over the plan's sync page limit) and any request with `options.async` true answer `202` with a `job_id` to poll at `GET /v1/jobs/{job_id}` (or set `options.webhook_url` to be called when it finishes). Add `Accept: application/pdf` to receive the edited file itself instead of JSON. Each entry in `changes` says which font was written (`font_source`, `font_used`), whether the pixel check passed (`verified`, `collateral_pixels`) and links a before/after preview; `unmatched` and `failed` list what did not happen and why.",
+        "description": "Apply one or more edits (replace, delete, redact, insert, form fill, stamp an image) to a document and get the edited PDF back with every change verified. Send the document as a multipart upload (`file`) with `edits` as a JSON string, or as JSON with `source.url` or a `source.file_id` from an earlier upload. Small documents answer `200` with the result at once; larger ones (over the plan's sync page limit) and any request with `options.async` true answer `202` with a `job_id` to poll at `GET /v1/jobs/{job_id}` (or set `options.webhook_url` to be called when it finishes). Add `Accept: application/pdf` to receive the edited file itself instead of JSON. Each entry in `changes` says which font was written (`font_source`, `font_used`), whether the pixel check passed (`verified`, `collateral_pixels`) and links a before/after preview; `unmatched` and `failed` list what did not happen and why.",
         "operationId": "post_edit_v1_edit_post",
         "parameters": [
           {
@@ -4731,6 +4918,394 @@
         ]
       }
     },
+    "/v1/pages": {
+      "post": {
+        "description": "An ordered list of page operations on one document -- `rotate` (90/180/270), `delete`, `extract` (a new document from the pages named, in that order) and `append` (another document's pages at the end, by `file_id` or `url`) -- applied all or nothing. The result is a new file. Every page not named is the page it was, byte for byte. Free: structural work is not billed.",
+        "operationId": "post_pages_v1_pages_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagesResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: invalid_request",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: unauthorized",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: not_found",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: too_large",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: document_encrypted, document_unsupported, signed_document, edit_failed",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: rate_limited",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: upstream_error",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "error.code is one of: engine_timeout",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "Requests allowed per minute for this key's plan.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests left in the current minute.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Unix time at which the window refills.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Request-Id": {
+                "description": "A unique id for this request; quote it to support.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Rotate, delete, extract or append pages",
+        "tags": [
+          "pages"
+        ]
+      }
+    },
     "/v1/preview": {
       "post": {
         "description": "A PNG of one page (or a region of it), optionally with highlight boxes, to look before editing or to show a person what changed. At most 200 KB. Free.",
@@ -5655,6 +6230,10 @@
     {
       "description": "Render one page as a PNG, optionally highlighted.",
       "name": "preview"
+    },
+    {
+      "description": "Rotate, delete, extract and append pages: a new document, nothing billed.",
+      "name": "pages"
     },
     {
       "description": "One template, many records, one output per record.",

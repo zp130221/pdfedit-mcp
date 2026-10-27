@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "pdfedit",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Edit text inside existing PDFs: replace, delete, redact, insert, fill forms. Original fonts and layout kept; every change verified before it is returned. No key needed to try: 20 pages a day per IP.",
   "author": {
     "name": "Niubai",

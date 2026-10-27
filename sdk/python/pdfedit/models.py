@@ -87,6 +87,15 @@ class Watermark(Enum):
 
 
 @dataclass
+class BoxModel:
+    h: float
+    page: int
+    w: float
+    x: float
+    y: float
+
+
+@dataclass
 class ChangeOut:
     edit: int
     op: str
@@ -133,6 +142,7 @@ class Op(Enum):
     redact = 'redact'
     insert = 'insert'
     form = 'form'
+    stamp = 'stamp'
 
 
 @dataclass
@@ -267,6 +277,21 @@ class OutputOut:
     expires_at: str | None = None
     pages: int | None = 0
     url: str | None = None
+
+
+class Op1(Enum):
+    rotate = 'rotate'
+    delete = 'delete'
+    extract = 'extract'
+    append = 'append'
+
+
+@dataclass
+class PagesResponse:
+    output: OutputOut
+    page_count: int
+    status: str
+    applied: list[dict[str, Any]] | None = None
 
 
 class Scale(IntEnum):
@@ -438,10 +463,12 @@ class BatchRecordOut:
 @dataclass
 class EditModel:
     at: AtModel | None = None
+    box: BoxModel | None = None
     fields: dict[str, Any] | None = None
     find: str | None = None
     fit: Fit | None = Fit.auto
     flatten: bool | None = False
+    image: str | None = None
     match: MatchModel | None = None
     op: Op | None = Op.replace
     replace: str | None = None
@@ -489,6 +516,20 @@ class JobResponse:
     kind: str | None = 'edit'
     progress: dict[str, Any] | None = None
     records: list[BatchRecordOut] | None = None
+
+
+@dataclass
+class PageOpModel:
+    op: Op1
+    degrees: int | None = None
+    pages: str | list[int] | None = None
+    source: SourceModel | None = None
+
+
+@dataclass
+class PagesRequest:
+    ops: list[PageOpModel]
+    source: SourceModel
 
 
 @dataclass

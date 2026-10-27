@@ -6,7 +6,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@niubai/pdfedit-mcp@0.1.12"
+        "@niubai/pdfedit-mcp@0.1.13"
       ]
     }
   }
