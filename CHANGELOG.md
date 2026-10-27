@@ -19,6 +19,30 @@ by date in the `X-API-Version` header.
   Clearing a checkbox (`false`) and selecting a radio group both wrote the
   document correctly and then returned `readback_failed`, so a caller saw a
   failure over a document that was right.
+- API side: a radio group can be set to a named option. `/v1/text` with
+  `layers: ["forms"]` lists each button's `options`; sending one of those
+  names back used to clear the group and report success, so the only way to
+  answer a three-way question was to accept whichever option happened to be
+  first. A value that is neither an option nor a yes or no is now refused
+  (`field_not_editable`, with the options listed) rather than taken as "no".
+- **A redaction now answers for itself.** The response carries a
+  `redaction` block on every edit (null unless something was redacted):
+  `found_in` lists the redacted strings that can still be found anywhere in
+  the document and `places` says where -- the page text, the document
+  information dictionary, the XMP packet, a bookmark title.
+  `metadata_scrubbed` and `metadata_places` say what `redact_metadata`
+  actually swept. The block was computed and then dropped before it reached
+  anyone, `found_in` only ever looked at the page text (so a name redacted
+  off page 1 that was also the document's title reported nothing to
+  report), and `metadata_scrubbed` was always false however much it swept.
+  Also fixed: `redact_metadata` was deleting document-information entries
+  that had nothing to do with the redacted string -- keywords, subject,
+  author on some documents.
+- A `file_id` that nothing has been uploaded to now says so. `POST /v1/files`
+  reserves an id and answers with an `upload_url`; using the id before the
+  `PUT` reported "File not found", which pointed at the id -- the one thing
+  that was right. Same `not_found` code, with the remedy in the message and
+  the hint.
 - API side: replacing a word the document's own font cannot write -- a
   substituted face is brought in for it -- no longer nudges the text BEFORE
   the edit. Up to 1.9pt on a heading, measured; nothing ahead of an edit has

@@ -736,6 +736,16 @@
               }
             ]
           },
+          "redaction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RedactionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -1524,6 +1534,43 @@
           "job_id"
         ],
         "title": "QueuedResponse",
+        "type": "object"
+      },
+      "RedactionOut": {
+        "additionalProperties": true,
+        "description": "What a redaction proves about itself. Null unless an edit redacted.\n\nA redaction's whole claim is that the text is gone, so the report says\nwhere it is NOT gone. ``found_in`` lists the redacted strings that can\nstill be found anywhere in the document -- the page text, the document\ninformation dictionary, the XMP packet, a bookmark title -- and\n``places`` says where each one survived. Both empty is the clean answer.\n\n``metadata_scrubbed`` is whether ``redact_metadata`` actually changed\nanything, and ``metadata_places`` is what it changed. A document whose\nmetadata never mentioned the string reports ``false`` and an empty list,\nwhich is not a failure: there was nothing to sweep.",
+        "properties": {
+          "found_in": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Found In",
+            "type": "array"
+          },
+          "metadata_places": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Metadata Places",
+            "type": "array"
+          },
+          "metadata_scrubbed": {
+            "default": false,
+            "title": "Metadata Scrubbed",
+            "type": "boolean"
+          },
+          "places": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Places",
+            "type": "object"
+          }
+        },
+        "title": "RedactionOut",
         "type": "object"
       },
       "RegionModel": {
