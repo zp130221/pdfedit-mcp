@@ -19,19 +19,19 @@ def test_the_async_keyword_field_goes_out_under_its_alias():
 
 
 def test_enums_become_their_values_recursively():
-    request = pdfedit.PreviewRequest(
+    request = pdfedit.EditRequest(
         source=pdfedit.SourceModel(file_id="f_1"),
-        page=3,
-        scale=pdfedit.Scale.integer_3,
-        highlight=[[10.0, 20.0, 30.0, 40.0]],
+        edits=[{"op": "delete", "find": "x"}],
+        options=pdfedit.GatewayOptions(ocr=pdfedit.Ocr.on, preview=pdfedit.Preview.pages),
     )
 
-    assert to_wire(request) == {
-        "source": {"file_id": "f_1"},
-        "page": 3,
-        "scale": 3,
-        "highlight": [[10.0, 20.0, 30.0, 40.0]],
-    }
+    wire = to_wire(request)
+
+    assert wire["source"] == {"file_id": "f_1"}
+    assert wire["edits"] == [{"op": "delete", "find": "x"}]
+    assert wire["options"]["ocr"] == "on"
+    assert wire["options"]["preview"] == "pages"
+    assert "async" in wire["options"] and "async_" not in wire["options"]
 
 
 def test_plain_dicts_pass_through_minus_their_nones():
