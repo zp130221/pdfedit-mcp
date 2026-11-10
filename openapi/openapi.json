@@ -65,6 +65,12 @@
             "description": "Anchor text to insert after; the first occurrence on the page wins, and the style is inherited from it.",
             "title": "After"
           },
+          "over_text": {
+            "default": false,
+            "description": "With x/y: write there even if the page already has text at that point. Off, an insert that would land on or run into existing text is refused (`occupied`), because a caller who cannot see the page would ruin the very line they meant to fix. On, for a position chosen on a rendered page -- a label dragged next to another -- the text is written as asked.",
+            "title": "Over Text",
+            "type": "boolean"
+          },
           "page": {
             "minimum": 1.0,
             "title": "Page",
@@ -420,6 +426,24 @@
         "title": "BoxModel",
         "type": "object"
       },
+      "ByModel": {
+        "additionalProperties": false,
+        "description": "How far a `move` carries the phrase, in points of the page frame:\nx to the right, y DOWN the page (the frame every bbox is in).",
+        "properties": {
+          "dx": {
+            "default": 0.0,
+            "title": "Dx",
+            "type": "number"
+          },
+          "dy": {
+            "default": 0.0,
+            "title": "Dy",
+            "type": "number"
+          }
+        },
+        "title": "ByModel",
+        "type": "object"
+      },
       "ChangeOut": {
         "additionalProperties": true,
         "description": "One verified change: ``Change.to_dict()`` plus ``preview_url``.\n\n``preview_url`` is null when the change has no preview -- ``preview:\n\"none\"``, or the per-response cap (``settings.preview_cap``) was reached,\nin which case ``warnings`` carries ``preview_capped``.",
@@ -629,6 +653,17 @@
               }
             ]
           },
+          "by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ByModel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`move` only: the displacement. The phrase's own glyphs are drawn again that far away -- same font, size and weight -- and the rest of its line stays where it was."
+          },
           "fields": {
             "anyOf": [
               {
@@ -691,7 +726,8 @@
               "insert",
               "form",
               "stamp",
-              "remove_image"
+              "remove_image",
+              "move"
             ],
             "title": "Op",
             "type": "string"
@@ -1759,6 +1795,16 @@
         "additionalProperties": false,
         "description": "``POST /v1/preview``'s body (spec §2.2).",
         "properties": {
+          "format": {
+            "default": "png",
+            "description": "Image encoding: 'png' (lossless) or 'jpeg' (keeps the asked-for scale on busy pages; the response is image/jpeg).",
+            "enum": [
+              "png",
+              "jpeg"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
           "highlight": {
             "anyOf": [
               {
@@ -1801,13 +1847,11 @@
           },
           "scale": {
             "default": 2,
-            "enum": [
-              1,
-              2,
-              3
-            ],
+            "description": "Pixels per point, 0.25 to 3 (fractions allowed); the scale actually used is in X-Preview-Scale.",
+            "maximum": 3.0,
+            "minimum": 0.25,
             "title": "Scale",
-            "type": "integer"
+            "type": "number"
           },
           "source": {
             "$ref": "#/components/schemas/SourceModel"
@@ -2159,6 +2203,17 @@
           "match": {
             "$ref": "#/components/schemas/MatchModel"
           },
+          "ocr": {
+            "default": "off",
+            "description": "Also read pages by recognition: 'auto' for pages with no text layer, 'on' for every page named. Limited to 3 pages per request; the rows carry `is_ocr` and `confidence`, and their ids (`p1o3`) are not editable by `span_ids` -- edit them with `find` plus `scope.region` and `options.ocr`.",
+            "enum": [
+              "off",
+              "auto",
+              "on"
+            ],
+            "title": "Ocr",
+            "type": "string"
+          },
           "pages": {
             "anyOf": [
               {
@@ -2251,6 +2306,22 @@
             },
             "title": "Spans",
             "type": "array"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only when present: e.g. `{page, code: \"ocr_failed\", message}` for a page whose recognition pass could not run (retry, or send the edit as a job).",
+            "title": "Warnings"
           }
         },
         "title": "TextResponse",
@@ -2275,6 +2346,17 @@
             "default": "#000000",
             "title": "Color",
             "type": "string"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
           },
           "dir": {
             "items": {
@@ -5460,6 +5542,12 @@
         "responses": {
           "200": {
             "content": {
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
               "image/png": {
                 "schema": {
                   "format": "binary",
@@ -5467,7 +5555,7 @@
                 }
               }
             },
-            "description": "The rendered page, at most 200 KB.",
+            "description": "The rendered page, at most 200 KB, as PNG or (with `format: jpeg`) JPEG.",
             "headers": {
               "X-RateLimit-Limit": {
                 "description": "Requests allowed per minute for this key's plan.",

@@ -3,6 +3,22 @@
 The MCP package (`@niubai/pdfedit-mcp`) is tagged `mcp-vX.Y.Z`; the API is versioned
 by date in the `X-API-Version` header.
 
+## 0.1.15 - 2026-11-10
+- **`op: "move"`: move a phrase to another place on its page.** `dx`/`dy`
+  in points (or `scale`), optionally `by: "glyphs"` so the phrase travels
+  with its own glyphs: a dragged bold table head stays bold, in the face the
+  document already uses.
+- **`insert` may land beside or over existing text.** `at.over_text: true`
+  writes at `x/y` even where the page already has text there; off (the
+  default) such an insert is refused as `occupied`, so a caller who cannot
+  see the page does not ruin the line it meant to fix.
+- **`pdf_find` reads by recognition.** `ocr: "on"` (or `"auto"` for pages
+  with no text layer) lists recognised rows too, three pages per request;
+  the rows carry `is_ocr` and `confidence`, and their ids are not editable by
+  `span_ids` -- edit them with `find` plus `scope.region` and `options.ocr`.
+- API side: a span's edit lands on the span's own characters; the page
+  preview is rendered at the zoom it is shown at.
+
 ## 0.1.14 - 2026-10-27
 - **`op: "remove_image"`: take an image off a page.** Every image drawn inside
   `box{page, x, y, w, h}` is removed -- its resource with it once nothing else

@@ -27,11 +27,21 @@ export const RegionModel = z.strictObject({
  */
 export const AtModel = z.strictObject({
   "after": z.string().nullable().describe("Anchor text to insert after; the first occurrence on the page wins, and the style is inherited from it.").optional(),
+  "over_text": z.boolean().describe("With x/y: write there even if the page already has text at that point. Off, an insert that would land on or run into existing text is refused (`occupied`), because a caller who cannot see the page would ruin the very line they meant to fix. On, for a position chosen on a rendered page -- a label dragged next to another -- the text is written as asked. (default: false)").optional(),
   "page": z.int().min(1),
   "placement": z.enum(["inline", "below"]).describe("With `after`: 'inline' writes one space past the anchor's right edge on its own baseline; 'below' writes at the anchor line's left edge, one leading down. (default: \"inline\")").optional(),
   "units": z.enum(["pt", "fraction"]).describe("(default: \"pt\")").optional(),
   "x": z.number().nullable().describe("Baseline origin x. Points from the page's left edge, or a fraction of the page width when units='fraction'.").optional(),
   "y": z.number().nullable().describe("Baseline origin y: where the first line sits, measured from the page's TOP edge (PDF viewer convention, as every bbox and span origin in this API). A fraction of the page height when units='fraction'.").optional(),
+});
+
+/**
+ * How far a `move` carries the phrase, in points of the page frame:
+ * x to the right, y DOWN the page (the frame every bbox is in).
+ */
+export const ByModel = z.strictObject({
+  "dx": z.number().describe("(default: 0)").optional(),
+  "dy": z.number().describe("(default: 0)").optional(),
 });
 
 /**
@@ -107,13 +117,14 @@ export const ScopeModel = z.strictObject({
 export const EditModel = z.strictObject({
   "at": AtModel.nullable().optional(),
   "box": BoxModel.nullable().optional(),
+  "by": ByModel.nullable().describe("`move` only: the displacement. The phrase's own glyphs are drawn again that far away -- same font, size and weight -- and the rest of its line stays where it was.").optional(),
   "fields": z.record(z.string(), z.unknown()).nullable().optional(),
   "find": z.string().nullable().optional(),
   "fit": z.enum(["auto", "reflow", "strict"]).describe("(default: \"auto\")").optional(),
   "flatten": z.boolean().describe("(default: false)").optional(),
   "image": z.string().nullable().describe("The image to place: PNG, JPEG, GIF, BMP or WebP, as base64 (a `data:` URL is accepted). JPEG is stored as sent; PNG keeps its transparency.").optional(),
   "match": MatchModel.optional(),
-  "op": z.enum(["replace", "delete", "redact", "insert", "form", "stamp", "remove_image"]).describe("(default: \"replace\")").optional(),
+  "op": z.enum(["replace", "delete", "redact", "insert", "form", "stamp", "remove_image", "move"]).describe("(default: \"replace\")").optional(),
   "replace": z.string().nullable().optional(),
   "scope": ScopeModel.optional(),
   "style": StyleModel.nullable().optional(),
@@ -178,6 +189,7 @@ export const TextRequest = z.strictObject({
   "layers": z.array(z.enum(["content", "forms", "annotations"])).min(1).optional(),
   "limit": z.int().min(1).max(1000).describe("(default: 200)").optional(),
   "match": MatchModel.optional(),
+  "ocr": z.enum(["off", "auto", "on"]).describe("Also read pages by recognition: 'auto' for pages with no text layer, 'on' for every page named. Limited to 3 pages per request; the rows carry `is_ocr` and `confidence`, and their ids (`p1o3`) are not editable by `span_ids` -- edit them with `find` plus `scope.region` and `options.ocr`. (default: \"off\")").optional(),
   "pages": z.union([z.string(), z.array(z.int())]).nullable().optional(),
   "query": z.string().nullable().optional(),
   "source": SourceModel,
@@ -187,12 +199,13 @@ export const TextRequest = z.strictObject({
  * ``POST /v1/preview``'s body (spec §2.2).
  */
 export const PreviewRequest = z.strictObject({
+  "format": z.enum(["png", "jpeg"]).describe("Image encoding: 'png' (lossless) or 'jpeg' (keeps the asked-for scale on busy pages; the response is image/jpeg). (default: \"png\")").optional(),
   "highlight": z.array(z.array(z.number())).max(200).nullable().optional(),
   "page": z.int().min(1).describe("(default: 1)").optional(),
   "region": z.array(z.number()).min(4).max(4).nullable().optional(),
-  "scale": z.union([z.literal(1), z.literal(2), z.literal(3)]).describe("(default: 2)").optional(),
+  "scale": z.number().min(0.25).max(3).describe("Pixels per point, 0.25 to 3 (fractions allowed); the scale actually used is in X-Preview-Scale. (default: 2)").optional(),
   "source": SourceModel,
 });
 
 /** The components this file was generated from, for the staleness test. */
-export const GENERATED_FROM = ["SourceModel", "RegionModel", "AtModel", "BoxModel", "StyleModel", "MatchModel", "FontOptions", "GatewayOptions", "ScopeModel", "EditModel", "BatchOptions", "BatchRequest", "TextRequest", "PreviewRequest"] as const;
+export const GENERATED_FROM = ["SourceModel", "RegionModel", "AtModel", "ByModel", "BoxModel", "StyleModel", "MatchModel", "FontOptions", "GatewayOptions", "ScopeModel", "EditModel", "BatchOptions", "BatchRequest", "TextRequest", "PreviewRequest"] as const;

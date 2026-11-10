@@ -398,6 +398,12 @@ export interface components {
              * @description Anchor text to insert after; the first occurrence on the page wins, and the style is inherited from it.
              */
             after?: string | null;
+            /**
+             * Over Text
+             * @description With x/y: write there even if the page already has text at that point. Off, an insert that would land on or run into existing text is refused (`occupied`), because a caller who cannot see the page would ruin the very line they meant to fix. On, for a position chosen on a rendered page -- a label dragged next to another -- the text is written as asked.
+             * @default false
+             */
+            over_text?: boolean;
             /** Page */
             page: number;
             /**
@@ -603,6 +609,23 @@ export interface components {
             y: number;
         };
         /**
+         * ByModel
+         * @description How far a `move` carries the phrase, in points of the page frame:
+         *     x to the right, y DOWN the page (the frame every bbox is in).
+         */
+        ByModel: {
+            /**
+             * Dx
+             * @default 0
+             */
+            dx?: number;
+            /**
+             * Dy
+             * @default 0
+             */
+            dy?: number;
+        };
+        /**
          * ChangeOut
          * @description One verified change: ``Change.to_dict()`` plus ``preview_url``.
          *
@@ -708,6 +731,8 @@ export interface components {
         EditModel: {
             at?: components["schemas"]["AtModel"] | null;
             box?: components["schemas"]["BoxModel"] | null;
+            /** @description `move` only: the displacement. The phrase's own glyphs are drawn again that far away -- same font, size and weight -- and the rest of its line stays where it was. */
+            by?: components["schemas"]["ByModel"] | null;
             /** Fields */
             fields?: {
                 [key: string]: unknown;
@@ -736,7 +761,7 @@ export interface components {
              * @default replace
              * @enum {string}
              */
-            op?: "replace" | "delete" | "redact" | "insert" | "form" | "stamp" | "remove_image";
+            op?: "replace" | "delete" | "redact" | "insert" | "form" | "stamp" | "remove_image" | "move";
             /** Replace */
             replace?: string | null;
             scope?: components["schemas"]["ScopeModel"];
@@ -1269,6 +1294,13 @@ export interface components {
          * @description ``POST /v1/preview``'s body (spec §2.2).
          */
         PreviewRequest: {
+            /**
+             * Format
+             * @description Image encoding: 'png' (lossless) or 'jpeg' (keeps the asked-for scale on busy pages; the response is image/jpeg).
+             * @default png
+             * @enum {string}
+             */
+            format?: "png" | "jpeg";
             /** Highlight */
             highlight?: number[][] | null;
             /**
@@ -1280,10 +1312,10 @@ export interface components {
             region?: number[] | null;
             /**
              * Scale
+             * @description Pixels per point, 0.25 to 3 (fractions allowed); the scale actually used is in X-Preview-Scale.
              * @default 2
-             * @enum {integer}
              */
-            scale?: 1 | 2 | 3;
+            scale?: number;
             source: components["schemas"]["SourceModel"];
         };
         /**
@@ -1421,6 +1453,13 @@ export interface components {
              */
             limit?: number;
             match?: components["schemas"]["MatchModel"];
+            /**
+             * Ocr
+             * @description Also read pages by recognition: 'auto' for pages with no text layer, 'on' for every page named. Limited to 3 pages per request; the rows carry `is_ocr` and `confidence`, and their ids (`p1o3`) are not editable by `span_ids` -- edit them with `find` plus `scope.region` and `options.ocr`.
+             * @default off
+             * @enum {string}
+             */
+            ocr?: "off" | "auto" | "on";
             /** Pages */
             pages?: string | number[] | null;
             /** Query */
@@ -1449,6 +1488,13 @@ export interface components {
             page_count?: number;
             /** Spans */
             spans?: components["schemas"]["TextSpanOut"][];
+            /**
+             * Warnings
+             * @description Only when present: e.g. `{page, code: "ocr_failed", message}` for a page whose recognition pass could not run (retry, or send the edit as a job).
+             */
+            warnings?: {
+                [key: string]: unknown;
+            }[] | null;
         } & {
             [key: string]: unknown;
         };
@@ -1466,6 +1512,8 @@ export interface components {
              * @default #000000
              */
             color?: string;
+            /** Confidence */
+            confidence?: number | null;
             /** Dir */
             dir?: number[];
             /** Field */
@@ -3039,7 +3087,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The rendered page, at most 200 KB. */
+            /** @description The rendered page, at most 200 KB, as PNG or (with `format: jpeg`) JPEG. */
             200: {
                 headers: {
                     /** @description Requests allowed per minute for this key's plan. */
@@ -3053,6 +3101,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    "image/jpeg": string;
                     "image/png": string;
                 };
             };

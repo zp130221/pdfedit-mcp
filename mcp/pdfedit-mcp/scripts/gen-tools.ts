@@ -29,6 +29,7 @@ export const COMPONENTS = [
   'SourceModel',
   'RegionModel',
   'AtModel',
+  'ByModel',
   'BoxModel',
   'StyleModel',
   'MatchModel',

@@ -18,7 +18,7 @@ re-runs the command above and fails if this file differs from it.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import Enum
 from typing import Any, Literal
 
 
@@ -47,6 +47,7 @@ class Units(Enum):
 class AtModel:
     page: int
     after: str | None = None
+    over_text: bool | None = False
     placement: Placement | None = Placement.inline
     units: Units | None = Units.pt
     x: float | None = None
@@ -93,6 +94,12 @@ class BoxModel:
     w: float
     x: float
     y: float
+
+
+@dataclass
+class ByModel:
+    dx: float | None = 0.0
+    dy: float | None = 0.0
 
 
 @dataclass
@@ -144,6 +151,7 @@ class Op(Enum):
     form = 'form'
     stamp = 'stamp'
     remove_image = 'remove_image'
+    move = 'move'
 
 
 @dataclass
@@ -304,10 +312,9 @@ class PagesResponse:
     applied: list[dict[str, Any]] | None = None
 
 
-class Scale(IntEnum):
-    integer_1 = 1
-    integer_2 = 2
-    integer_3 = 3
+class Format(Enum):
+    png = 'png'
+    jpeg = 'jpeg'
 
 
 @dataclass
@@ -376,6 +383,12 @@ class StyleModel:
     size: float | None = None
 
 
+class Ocr2(Enum):
+    off = 'off'
+    auto = 'auto'
+    on = 'on'
+
+
 @dataclass
 class TextRequest:
     source: SourceModel
@@ -384,6 +397,7 @@ class TextRequest:
     layers: list[Layer] | None = None
     limit: int | None = 200
     match: MatchModel | None = None
+    ocr: Ocr2 | None = Ocr2.off
     pages: str | list[int] | None = None
     query: str | None = None
 
@@ -397,6 +411,7 @@ class TextSpanOut:
     text: str
     bbox: list[float] | None = None
     color: str | None = '#000000'
+    confidence: float | None = None
     dir: list[float] | None = None
     field: str | None = None
     font: str | None = ''
@@ -475,6 +490,7 @@ class BatchRecordOut:
 class EditModel:
     at: AtModel | None = None
     box: BoxModel | None = None
+    by: ByModel | None = None
     fields: dict[str, Any] | None = None
     find: str | None = None
     fit: Fit | None = Fit.auto
@@ -552,10 +568,11 @@ class PagesRequest:
 @dataclass
 class PreviewRequest:
     source: SourceModel
+    format: Format | None = Format.png
     highlight: list[list[float]] | None = None
     page: int | None = 1
     region: list[float] | None = None
-    scale: Scale | None = Scale.integer_2
+    scale: float | None = 2
 
 
 @dataclass
@@ -565,6 +582,7 @@ class TextResponse:
     next_cursor: str | None = None
     page_count: int | None = 0
     spans: list[TextSpanOut] | None = None
+    warnings: list[dict[str, Any]] | None = None
 
 
 @dataclass

@@ -30,6 +30,7 @@ describe('buildServer', () => {
       'form',
       'stamp',
       'remove_image',
+      'move',
     ]);
   });
 });
