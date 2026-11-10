@@ -15,6 +15,7 @@ on:
     tags:
       - "mcp-v*"
       - "sdk-v*"
+      - "py-v*"
   pull_request:
     branches:
       - main
@@ -248,3 +249,49 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
+
+  # =========================================================================
+  # publish-py -- PyPI, on a py-v* tag only (the Python SDK)
+  # =========================================================================
+  # Trusted publishing: PyPI trusts this repository's workflow through the
+  # OIDC token, so there is no API token to keep. The project `niubai-pdfedit`
+  # must name this repository, this workflow file and the `pypi` environment
+  # as its publisher (PyPI -> project -> Publishing) before the first tag.
+  publish-py:
+    name: pypi publish (python sdk)
+    if: startsWith(github.ref, 'refs/tags/py-v')
+    needs: [python]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tag matches pyproject version
+        working-directory: sdk/python
+        run: |
+          tag="${GITHUB_REF_NAME#py-v}"
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          echo "tag ${tag}, pyproject ${version}"
+          if [ "${tag}" != "${version}" ]; then
+            echo "::error::tag py-v${tag} does not match pyproject version ${version}"
+            exit 1
+          fi
+
+      - name: Build
+        working-directory: sdk/python
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdk/python/dist/

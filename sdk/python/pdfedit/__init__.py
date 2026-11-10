@@ -28,7 +28,7 @@ from .client import (
 )
 from .errors import TIMEOUT_CODE, PdfEditError, PdfEditTimeoutError
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 #: Every generated model, re-exported so callers never import `pdfedit.models`
 #: directly. Computed rather than listed: the module is regenerated whenever
